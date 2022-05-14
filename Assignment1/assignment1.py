@@ -141,10 +141,7 @@ class ArgumentParser:
                            dest="n", required=False, type=int, default=10,
                            help="Number of references to download concurrently.")
 
-        parser.add_argument('-pmid',
-            required=True,
-            type=int,
-            help='Pubmed ID')
+        parser.add_argument("pubmed_id", action="store", type=str, nargs=1, help="Pubmed ID of the article to harvest for references to download.")
 
         parser.add_argument('-v',
             '--version',
@@ -176,7 +173,7 @@ class ArgumentParser:
 def main():
     # Get passed arguments
     cla_parser = ArgumentParser()
-    pmid = cla_parser.get_argument('pmid')
+    pmid = cla_parser.get_argument('pubmed_id')
     n_articles= cla_parser.get_argument('n')
 
     download_pm = DownloadPubmedPapers(n_articles=n_articles)
