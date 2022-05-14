@@ -52,6 +52,10 @@ class ArgumentParser:
         # Set version
         parser.version = __version__
 
+        parser.add_argument("-n", action="store",
+                           dest="n", required=False, type=int, default=10,
+                           help="Number of references to download concurrently.")
+
         parser.add_argument('-pmid',
             required=True,
             help='Pubmed ID')
@@ -86,8 +90,10 @@ def main():
     # Get passed arguments
     cla_parser = ArgumentParser()
     pmid = cla_parser.get_argument('pmid')
+    n_articles= cla_parser.get_argument('n')
 
     print(f"Pubmed ID: {pmid}")
+    print(f"Number of articles to download: {n_articles}")
 
 if __name__ == "__main__":
     main()
