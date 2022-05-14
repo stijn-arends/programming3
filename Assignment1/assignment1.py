@@ -1,14 +1,10 @@
 import sys
-from weakref import ref
 from Bio import Entrez
-from bs4 import BeautifulSoup
 import multiprocessing as mp
 import argparse
 import os
 from pathlib import Path
-
-# Assignment: https://bioinf.nl/~martijn/master/programming3/assignment1.html
-# Entrenz documentation: http://biopython.org/DIST/docs/tutorial/Tutorial.html#sec143
+from typing import Any
 
 __author__ = "Stijn Arends"
 __version__ = "v0.1"
@@ -22,7 +18,7 @@ class ArticleNotFound(Exception):
         message -- explanation of the error
     """
 
-    def __init__(self, pmid):
+    def __init__(self, pmid: int) -> None:
         self.message = f"pmid: {pmid}, is not a valid ID or it does not contain any references."
         super().__init__(self.message)
 
@@ -32,15 +28,14 @@ class DownloadPubmedPapers:
     Download a number of papers that are referenced in a pubmed article. 
     """
 
-    def __init__(self, pmid:str, n_articles:int) -> None:
-        self.pmid = pmid
+    def __init__(self, n_articles:int) -> None:
         self.n_articles = n_articles
         self.path = Path(os.path.abspath(os.path.dirname(__file__))) / "output"
         self.make_data_dir(self.path)
         Entrez.email = "stijnarends@live.nl"
         Entrez.api_key = '9f94f8d674e1918a47cfa8afc303838b0408'
 
-    def make_data_dir(self, path) -> None:
+    def make_data_dir(self, path: Path) -> None:
         """
         Create a directory (if it does not exisit yet) to store the 
         data.
@@ -53,9 +48,9 @@ class DownloadPubmedPapers:
         try:
             path.mkdir(parents=True, exist_ok=False)
         except FileExistsError:
-            print(f"[{self.make_data_dir.__name__}] Folder is already there.")
+            print(f"[{self.make_data_dir.__name__}] {path} already exists.")
 
-    def get_id_references(self) -> list:
+    def get_id_references(self, pmid) -> list:
         """
         Get the pubmed IDs of the references from article in pubmed.
 
@@ -67,10 +62,10 @@ class DownloadPubmedPapers:
         results = Entrez.read(Entrez.elink(dbfrom="pubmed",
                                 db="pmc",
                                 LinkName="pubmed_pmc_refs",
-                                id=self.pmid))
+                                id=pmid))
 
         if not results[0]["LinkSetDb"]:
-            raise ArticleNotFound(self.pmid)
+            raise ArticleNotFound(pmid)
                                 
         references = [f'{link["Id"]}' for link in results[0]["LinkSetDb"][0]["Link"]]
 
@@ -86,6 +81,7 @@ class DownloadPubmedPapers:
         pmid - int
             Pubmed ID
         """
+        print(f"Downloading paper: {pmid}")
         paper = Entrez.efetch(db="pmc", id=pmid, rettype="XML", retmode="text").read()
         self.write_out_paper(paper, pmid)
 
@@ -127,6 +123,7 @@ class ArgumentParser:
         :arguments
         ----------
         -pmid - pubmed id
+        -n - number of articles to download. 
         -v, --version - displays the version of the script
         -h, --help - display the help text
 
@@ -135,10 +132,9 @@ class ArgumentParser:
         parser - ArgumentParser
         """
         parser = argparse.ArgumentParser(prog=os.path.basename(__file__),
-            description="Python script that downloads 10 papers from the reference section from an article in pubmed.",
+            description="Python script that downloads papers from the reference section from an article in pubmed.",
             epilog="Contact: stijnarend@live.nl")
 
-        # Set version
         parser.version = __version__
 
         parser.add_argument("-n", action="store",
@@ -157,18 +153,18 @@ class ArgumentParser:
 
         return parser
 
-    def get_argument(self, argument_key):
+    def get_argument(self, argument_key: str) -> Any:
         """
         Method to get an input argument.
+
         :parameters
         -----------
-        argument_key - str 
-            Full command line argument (so --config for the configuration file argument).
+        argument_key - str
+            Name of command line argument.
 
-    
         :returns
         --------
-        value - List or boolean
+        value - Any
         """
         if self.arguments is not None and argument_key in self.arguments:
             value = getattr(self.arguments, argument_key)
@@ -183,8 +179,12 @@ def main():
     pmid = cla_parser.get_argument('pmid')
     n_articles= cla_parser.get_argument('n')
 
-    download_pm = DownloadPubmedPapers(pmid=pmid, n_articles=n_articles)
-    ref_ids = download_pm.get_id_references()
+    download_pm = DownloadPubmedPapers(n_articles=n_articles)
+    ref_ids = download_pm.get_id_references(pmid=pmid)
+
+    if n_articles > len(ref_ids):
+        print(f"There are only {len(ref_ids)} articles - specified: {n_articles}")
+        n_articles = len(ref_ids)
 
     with mp.Pool(mp.cpu_count()) as p:
         p.map(download_pm.download_paper, ref_ids[0:n_articles])
