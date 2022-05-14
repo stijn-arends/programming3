@@ -37,7 +37,7 @@ class DownloadPubmedPapers:
         Entrez.email = "stijnarends@live.nl"
         Entrez.api_key = '9f94f8d674e1918a47cfa8afc303838b0408'
 
-    def get_id_references(self):
+    def get_id_references(self) -> list:
         """
         Get the pubmed IDs of the references from article in pubmed.
 
@@ -57,6 +57,19 @@ class DownloadPubmedPapers:
         references = [f'{link["Id"]}' for link in results[0]["LinkSetDb"][0]["Link"]]
 
         return references
+
+
+    def download_paper(self, pmid: int) -> None:
+        """
+        Download an article given a pubmed id in XML format.
+
+        :parameters
+        -----------
+        pmid - int
+            Pubmed ID
+        """
+        handle = Entrez.efetch(db="pmc", id=pmid, rettype="XML", retmode="text")
+        handle.close()
 
 
 class ArgumentParser:
@@ -100,6 +113,7 @@ class ArgumentParser:
 
         parser.add_argument('-pmid',
             required=True,
+            type=int,
             help='Pubmed ID')
 
         parser.add_argument('-v',
@@ -127,6 +141,7 @@ class ArgumentParser:
         else:
             value = None
         return value
+
 
 def main():
     # Get passed arguments
