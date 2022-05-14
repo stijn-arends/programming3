@@ -1,4 +1,5 @@
 import sys
+from weakref import ref
 from Bio import Entrez
 from bs4 import BeautifulSoup
 import multiprocessing as mp
@@ -11,6 +12,18 @@ import os
 __author__ = "Stijn Arends"
 __version__ = "v0.1"
 __data__ = "14-5-2022"
+
+
+class ArticleNotFound(Exception):
+    """Exception raised for 404 errors.
+    Attributes:
+        url -- url of a website
+        message -- explanation of the error
+    """
+
+    def __init__(self, pmid):
+        self.message = f"pmid: {pmid}, is not a valid ID or it does not contain any references."
+        super().__init__(self.message)
 
 
 class DownloadPubmedPapers:
@@ -34,10 +47,13 @@ class DownloadPubmedPapers:
             List of pubmed IDs
         """
         results = Entrez.read(Entrez.elink(dbfrom="pubmed",
-                                   db="pmc",
-                                   LinkName="pubmed_pmc_refs",
-                                   id=self.pmid))
-                                   
+                                db="pmc",
+                                LinkName="pubmed_pmc_refs",
+                                id=self.pmid))
+
+        if not results[0]["LinkSetDb"]:
+            raise ArticleNotFound(self.pmid)
+                                
         references = [f'{link["Id"]}' for link in results[0]["LinkSetDb"][0]["Link"]]
 
         return references
@@ -118,8 +134,9 @@ def main():
     pmid = cla_parser.get_argument('pmid')
     n_articles= cla_parser.get_argument('n')
 
-    print(f"Pubmed ID: {pmid}")
-    print(f"Number of articles to download: {n_articles}")
+    download_pm = DownloadPubmedPapers(pmid=pmid, n_articles=n_articles)
+    refs = download_pm.get_id_references()
+    print(refs)
 
 if __name__ == "__main__":
     main()
