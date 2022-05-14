@@ -8,13 +8,21 @@ import os
 # Assignment: https://bioinf.nl/~martijn/master/programming3/assignment1.html
 # Entrenz documentation: http://biopython.org/DIST/docs/tutorial/Tutorial.html#sec143
 
-
-Entrez.email = "stijnarends@live.nl"  # Always tell NCBI who you are
-
-
 __author__ = "Stijn Arends"
 __version__ = "v0.1"
 __data__ = "14-5-2022"
+
+
+class DownloadPubmedPapers:
+    """
+    Download a number of papers that are referenced in a pubmed article. 
+    """
+
+    def __init__(self, pmid:str, n_articles:int) -> None:
+        self.pmid = pmid
+        self.n_articles = n_articles
+        Entrez.email = "stijnarends@live.nl"
+        Entrez.api_key = '9f94f8d674e1918a47cfa8afc303838b0408 '
 
 
 class ArgumentParser:
