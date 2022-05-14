@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import multiprocessing as mp
 import argparse
 import os
+from pathlib import Path
 
 # Assignment: https://bioinf.nl/~martijn/master/programming3/assignment1.html
 # Entrenz documentation: http://biopython.org/DIST/docs/tutorial/Tutorial.html#sec143
@@ -34,8 +35,25 @@ class DownloadPubmedPapers:
     def __init__(self, pmid:str, n_articles:int) -> None:
         self.pmid = pmid
         self.n_articles = n_articles
+        path = Path(os.path.abspath(os.path.dirname(__file__)))
+        self.make_data_dir(path / "output")
         Entrez.email = "stijnarends@live.nl"
         Entrez.api_key = '9f94f8d674e1918a47cfa8afc303838b0408'
+
+    def make_data_dir(self, path) -> None:
+        """
+        Create a directory (if it does not exisit yet) to store the 
+        data.
+
+        :Excepts
+        --------
+        FileExistsError
+            The directory already exists
+        """
+        try:
+            path.mkdir(parents=True, exist_ok=False)
+        except FileExistsError:
+            print(f"[{self.make_data_dir.__name__}] Folder is already there.")
 
     def get_id_references(self) -> list:
         """
