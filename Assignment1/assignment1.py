@@ -35,8 +35,8 @@ class DownloadPubmedPapers:
     def __init__(self, pmid:str, n_articles:int) -> None:
         self.pmid = pmid
         self.n_articles = n_articles
-        path = Path(os.path.abspath(os.path.dirname(__file__)))
-        self.make_data_dir(path / "output")
+        self.path = Path(os.path.abspath(os.path.dirname(__file__))) / "output"
+        self.make_data_dir(self.path)
         Entrez.email = "stijnarends@live.nl"
         Entrez.api_key = '9f94f8d674e1918a47cfa8afc303838b0408'
 
@@ -86,8 +86,24 @@ class DownloadPubmedPapers:
         pmid - int
             Pubmed ID
         """
-        handle = Entrez.efetch(db="pmc", id=pmid, rettype="XML", retmode="text")
-        handle.close()
+        paper = Entrez.efetch(db="pmc", id=pmid, rettype="XML", retmode="text").read()
+        self.write_out_paper(paper, pmid)
+
+
+    def write_out_paper(self, data:str, pmid:str) -> None:
+        """
+        Write out a paper in XML format.
+        
+        :parameters
+        -----------
+        data - str
+            Content of a paper in a binary string.
+        pmid - int
+            Pubmed ID
+        """
+        with open(self.path / f'{pmid}.xml', 'wb') as file:
+            file.write(data)
+
 
 
 class ArgumentParser:
@@ -170,6 +186,8 @@ def main():
     download_pm = DownloadPubmedPapers(pmid=pmid, n_articles=n_articles)
     refs = download_pm.get_id_references()
     print(refs)
+
+    download_pm.download_paper(refs[0])
 
 if __name__ == "__main__":
     main()
