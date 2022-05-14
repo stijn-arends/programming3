@@ -93,7 +93,7 @@ class DownloadPubmedPapers:
     def write_out_paper(self, data:str, pmid:str) -> None:
         """
         Write out a paper in XML format.
-        
+
         :parameters
         -----------
         data - str
@@ -184,10 +184,12 @@ def main():
     n_articles= cla_parser.get_argument('n')
 
     download_pm = DownloadPubmedPapers(pmid=pmid, n_articles=n_articles)
-    refs = download_pm.get_id_references()
-    print(refs)
+    ref_ids = download_pm.get_id_references()
 
-    download_pm.download_paper(refs[0])
+    with mp.Pool(mp.cpu_count()) as p:
+        p.map(download_pm.download_paper, ref_ids[0:n_articles])
+
+    print(f"Success! Downloaded {n_articles} articels.")
 
 if __name__ == "__main__":
     main()
