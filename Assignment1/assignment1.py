@@ -22,7 +22,25 @@ class DownloadPubmedPapers:
         self.pmid = pmid
         self.n_articles = n_articles
         Entrez.email = "stijnarends@live.nl"
-        Entrez.api_key = '9f94f8d674e1918a47cfa8afc303838b0408 '
+        Entrez.api_key = '9f94f8d674e1918a47cfa8afc303838b0408'
+
+    def get_id_references(self):
+        """
+        Get the pubmed IDs of the references from article in pubmed.
+
+        :returns
+        --------
+        references - list
+            List of pubmed IDs
+        """
+        results = Entrez.read(Entrez.elink(dbfrom="pubmed",
+                                   db="pmc",
+                                   LinkName="pubmed_pmc_refs",
+                                   id=self.pmid))
+                                   
+        references = [f'{link["Id"]}' for link in results[0]["LinkSetDb"][0]["Link"]]
+
+        return references
 
 
 class ArgumentParser:
