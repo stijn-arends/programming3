@@ -16,6 +16,18 @@ Entrez.email = "stijnarends@live.nl"
 Entrez.api_key = '9f94f8d674e1918a47cfa8afc303838b0408'
 
 
+class ArticleNotFound(Exception):
+    """Exception raised for 404 errors.
+    Attributes:
+        url -- url of a website
+        message -- explanation of the error
+    """
+
+    def __init__(self, pmid: int) -> None:
+        self.message = f"pmid: {pmid}, is not a valid ID or it does not contain any references."
+        super().__init__(self.message)
+
+
 class DownloadAuthorList:
     """
     Download a number of papers that are referenced in a pubmed article. 
@@ -39,6 +51,9 @@ class DownloadAuthorList:
                                 LinkName="pubmed_pmc_refs",
                                 id=pmid))
                                 
+        if not results[0]["LinkSetDb"]:
+            raise ArticleNotFound(pmid)
+
         references = [f'{link["Id"]}' for link in results[0]["LinkSetDb"][0]["Link"]]
 
         return references
