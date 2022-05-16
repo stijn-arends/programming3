@@ -70,6 +70,26 @@ class DownloadAuthorList:
         """
         print(f"Downloading paper: {pmid}")
         paper = Entrez.efetch(db="pmc", id=pmid, rettype="XML", retmode="text").read()
+        self.get_author_names(paper)
+
+
+    def get_author_names(self, paper:bytes) -> None:
+        """
+        Get the names of the authors of a paper.
+
+        :parameter
+        ----------
+        paper - bytes
+            Paper in xml format stored in a bytes object
+        """
+        bs4_data = BeautifulSoup(paper, 'xml')
+
+        authors = []
+        for author_info in bs4_data.find_all('name'): 
+            name = " ".join(child.text for child in author_info.findChildren())
+            authors.append(name)
+
+        print(f"Authors: {authors}")
 
 
 class ArgumentParser:
