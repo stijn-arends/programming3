@@ -11,6 +11,10 @@ __version__ = "v0.1"
 __data__ = "14-5-2022"
 
 
+Entrez.email = "stijnarends@live.nl"
+Entrez.api_key = '9f94f8d674e1918a47cfa8afc303838b0408'
+
+
 class ArticleNotFound(Exception):
     """Exception raised for 404 errors.
     Attributes:
@@ -28,16 +32,14 @@ class DownloadPubmedPapers:
     Download a number of papers that are referenced in a pubmed article. 
     """
 
-    def __init__(self, n_articles:int) -> None:
+    def __init__(self, n_articles:int, out_path) -> None:
         self.n_articles = n_articles
-        self.path = Path(os.path.abspath(os.path.dirname(__file__))) / "output"
-        self.make_data_dir(self.path)
-        Entrez.email = "stijnarends@live.nl"
-        Entrez.api_key = '9f94f8d674e1918a47cfa8afc303838b0408'
+        self.out_path = out_path
+        self.make_data_dir(self.out_path)
 
     def make_data_dir(self, path: Path) -> None:
         """
-        Create a directory (if it does not exisit yet) to store the 
+        Create a directory (if it does not exsit yet) to store the 
         data.
 
         :Excepts
@@ -97,7 +99,7 @@ class DownloadPubmedPapers:
         pmid - int
             Pubmed ID
         """
-        with open(self.path / f'{pmid}.xml', 'wb') as file:
+        with open(self.out_path / f'{pmid}.xml', 'wb') as file:
             file.write(data)
 
 
@@ -162,6 +164,7 @@ class ArgumentParser:
         :returns
         --------
         value - Any
+            Value of a command line argument
         """
         if self.arguments is not None and argument_key in self.arguments:
             value = getattr(self.arguments, argument_key)
@@ -176,7 +179,9 @@ def main():
     pmid = cla_parser.get_argument('pubmed_id')
     n_articles= cla_parser.get_argument('n')
 
-    download_pm = DownloadPubmedPapers(n_articles=n_articles)
+    out_path = Path(os.path.abspath(os.path.dirname(__file__))) / "output"
+
+    download_pm = DownloadPubmedPapers(n_articles=n_articles, out_path=out_path)
     ref_ids = download_pm.get_id_references(pmid=pmid)
 
     if n_articles > len(ref_ids):
