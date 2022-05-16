@@ -32,7 +32,7 @@ class DownloadPubmedPapers:
     Download a number of papers that are referenced in a pubmed article. 
     """
 
-    def __init__(self, n_articles:int, out_path) -> None:
+    def __init__(self, n_articles:int, out_path: Path) -> None:
         self.n_articles = n_articles
         self.out_path = out_path
         self.make_data_dir(self.out_path)
