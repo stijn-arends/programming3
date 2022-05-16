@@ -25,6 +25,24 @@ class DownloadAuthorList:
         self.n_articles = n_articles
         self.out_path = out_path
 
+    def get_id_references(self, pmid) -> list:
+        """
+        Get the pubmed IDs of the references from article in pubmed.
+
+        :returns
+        --------
+        references - list
+            List of pubmed IDs
+        """
+        results = Entrez.read(Entrez.elink(dbfrom="pubmed",
+                                db="pmc",
+                                LinkName="pubmed_pmc_refs",
+                                id=pmid))
+                                
+        references = [f'{link["Id"]}' for link in results[0]["LinkSetDb"][0]["Link"]]
+
+        return references
+
 
 class ArgumentParser:
     """
