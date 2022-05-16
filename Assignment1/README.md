@@ -19,7 +19,7 @@ python3 assignment1.py 33669327
 
 Optionally, the number of articles to download can be specified using the `-n` argument.
 ```bash
-python3 assignment1.py -pmid 33669327 -n 10
+python3 assignment1.py 33669327 -n 10
 ```
 
 * * *
