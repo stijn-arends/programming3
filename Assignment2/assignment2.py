@@ -5,6 +5,7 @@ import argparse
 import os
 from pathlib import Path
 from typing import Any
+from bs4 import BeautifulSoup
 
 
 __author__ = "Stijn Arends"
@@ -57,6 +58,18 @@ class DownloadAuthorList:
         references = [f'{link["Id"]}' for link in results[0]["LinkSetDb"][0]["Link"]]
 
         return references
+
+    def download_paper(self, pmid: int) -> None:
+        """
+        Download an article given a pubmed id in XML format.
+
+        :parameters
+        -----------
+        pmid - int
+            Pubmed ID
+        """
+        print(f"Downloading paper: {pmid}")
+        paper = Entrez.efetch(db="pmc", id=pmid, rettype="XML", retmode="text").read()
 
 
 class ArgumentParser:
