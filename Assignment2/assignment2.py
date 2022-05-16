@@ -16,6 +16,16 @@ Entrez.email = "stijnarends@live.nl"
 Entrez.api_key = '9f94f8d674e1918a47cfa8afc303838b0408'
 
 
+class DownloadAuthorList:
+    """
+    Download a number of papers that are referenced in a pubmed article. 
+    """
+
+    def __init__(self, n_articles:int, out_path: Path) -> None:
+        self.n_articles = n_articles
+        self.out_path = out_path
+
+
 class ArgumentParser:
     """
     Class to parse the input arguments.
@@ -61,11 +71,12 @@ class ArgumentParser:
         parser.add_argument("-a", action="store",
                            dest="n", required=False, type=int, default=10,
                            help="Number of references to download concurrently.")
-                           
+
         parser.add_argument('--port_number', "-p", help="The port number that will be used",
                         required=True, type=int)
 
-        parser.add_argument("--host", help="Hosts used, first input is set as the server host", default="", nargs="+")
+        parser.add_argument("--host", help="Hosts used, first input is set as the server host", 
+            required=True, nargs="+")
         parser.add_argument("-c", help="client mode", action='store_true')
         parser.add_argument("-s", help="server mode", action='store_true')
 
