@@ -46,6 +46,63 @@ def make_server_manager(port, authkey):
     print('Server started at port %s' % port)
     return manager
 
+def runserver(fn, data, port):
+    # Start a shared manager server and access its queues
+    manager = make_server_manager(port, AUTHKEY)
+    shared_job_q = manager.get_job_q()
+    shared_result_q = manager.get_result_q()
+    
+    if not data:
+        print("Gimme something to do here!")
+        return
+    
+    print("Sending data!")
+    for d in data:
+        shared_job_q.put({'fn' : fn, 'arg' : d})
+    
+    time.sleep(2)
+
+    results = []
+    while True:
+        try:
+            result = shared_result_q.get_nowait()
+            results.append(result)
+            print("Got result!", result)
+            if len(results) == len(data):
+                print("Got all results!")
+                break
+        except queue.Empty:
+            time.sleep(1)
+            continue
+    # Tell the client process no more data will be forthcoming
+    print("Time to kill some peons!")
+    shared_job_q.put(POISONPILL)
+    # Sleep a bit before shutting down the server - to give clients time to
+    # realize the job queue is empty and exit in an orderly way.
+    time.sleep(5)
+    print("Aaaaaand we're done for the server!")
+    manager.shutdown()
+    print(results)
+
+
+def make_client_manager(ip, port, authkey):
+    """ Create a manager for a client. This manager connects to a server on the
+        given address and exposes the get_job_q and get_result_q methods for
+        accessing the shared queues from the server.
+        Return a manager object.
+    """
+    class ServerQueueManager(BaseManager):
+        pass
+
+    ServerQueueManager.register('get_job_q')
+    ServerQueueManager.register('get_result_q')
+
+    manager = ServerQueueManager(address=(ip, port), authkey=authkey)
+    manager.connect()
+
+    print('Client connected to %s:%s' % (ip, port))
+    return manager
+
 
 class ArticleNotFound(Exception):
     """Exception raised for 404 errors.
