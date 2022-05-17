@@ -46,7 +46,7 @@ def make_server_manager(port, authkey):
     print('Server started at port %s' % port)
     return manager
 
-def runserver(fn, data, port):
+def run_server(fn, data, port):
     # Start a shared manager server and access its queues
     manager = make_server_manager(port, AUTHKEY)
     shared_job_q = manager.get_job_q()
@@ -103,6 +103,43 @@ def make_client_manager(ip, port, authkey):
     print('Client connected to %s:%s' % (ip, port))
     return manager
 
+def runclient(num_processes, ip, port):
+    manager = make_client_manager(ip, port, AUTHKEY)
+    job_q = manager.get_job_q()
+    result_q = manager.get_result_q()
+    run_workers(job_q, result_q, num_processes)
+    
+def run_workers(job_q, result_q, num_processes):
+    processes = []
+    for p in range(num_processes):
+        temP = mp.Process(target=peon, args=(job_q, result_q))
+        processes.append(temP)
+        temP.start()
+    print("Started %s workers!" % len(processes))
+    for temP in processes:
+        temP.join()
+
+def peon(job_q, result_q):
+    my_name = mp.current_process().name
+    while True:
+        try:
+            job = job_q.get_nowait()
+            if job == POISONPILL:
+                job_q.put(POISONPILL)
+                print("Aaaaaaargh", my_name)
+                return
+            else:
+                try:
+                    result = job['fn'](job['arg'])
+                    print("Peon %s Workwork on %s!" % (my_name, job['arg']))
+                    result_q.put({'job': job, 'result' : result})
+                except NameError:
+                    print("Can't find yer fun Bob!")
+                    result_q.put({'job': job, 'result' : ERROR})
+
+        except queue.Empty:
+            print("sleepytime for", my_name)
+            time.sleep(1)
 
 class ArticleNotFound(Exception):
     """Exception raised for 404 errors.
@@ -243,7 +280,7 @@ def main():
     print(f"Client: {run_client}")
 
     if run_server:
-        server = mp.Process(target=runserver, args=(download_auths.download_paper, ref_ids[:n_articles], port))
+        server = mp.Process(target=run_server, args=(download_auths.download_paper, ref_ids[:n_articles], port))
         server.start()
         time.sleep(1)
         server.join()
