@@ -59,8 +59,8 @@ class ArgumentParser:
             action='version')
 
         command_group = parser.add_mutually_exclusive_group()
-        command_group.add_argument('-s', help='Server mode, can\'t be used together with -c', action='store_true')
-        command_group.add_argument('-c', help='Client Mode, can\'t be used together with -s', action='store_true')
+        command_group.add_argument('-s', dest='s', help='Server mode, can\'t be used together with -c', action='store_true')
+        command_group.add_argument('-c', dest='c', help='Client Mode, can\'t be used together with -s', action='store_true')
 
         return parser
 
