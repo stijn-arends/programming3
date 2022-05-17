@@ -25,13 +25,6 @@ class ArgumentParser:
     def _create_argument_parser():
         """
         Create an argument parser.
-        
-        :arguments
-        ----------
-        -pmid - pubmed id
-        -n - number of articles to download. 
-        -v, --version - displays the version of the script
-        -h, --help - display the help text
 
         :returns
         --------
@@ -54,17 +47,16 @@ class ArgumentParser:
                            dest="a", required=False, type=int, default=10,
                            help="Number of references to download concurrently.")
 
-        parser.add_argument('--port_number', "-p", help="The port number that will be used",
+        parser.add_argument("-p", '--port_number',dest='p', help="The port number that will be used",
                         required=True, type=int)
 
-        parser.add_argument("--host", help="Hosts used, first input is set as the server host", 
-            required=True, nargs="+")
+        parser.add_argument("--host", dest="host", help="Hosts used, first input is set as the server host", 
+            required=True, nargs="?")
 
         parser.add_argument('-v',
             '--version',
             help='Displays the version number of the script and exitst',
             action='version')
-
 
         command_group = parser.add_mutually_exclusive_group()
         command_group.add_argument('-s', help='Server mode, can\'t be used together with -c', action='store_true')
