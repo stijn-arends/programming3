@@ -15,9 +15,36 @@ __author__ = "Stijn Arends"
 __version__ = "v0.1"
 __data__ = "14-5-2022"
 
+POISONPILL = "MEMENTOMORI"
+ERROR = "DOH"
+# IP = ''
+# PORTNUM = 5381
+AUTHKEY = b'whathasitgotinitspocketsesss?'
 
 Entrez.email = "stijnarends@live.nl"
 Entrez.api_key = '9f94f8d674e1918a47cfa8afc303838b0408'
+
+
+def make_server_manager(port, authkey):
+    """ Create a manager for the server, listening on the given port.
+        Return a manager object with get_job_q and get_result_q methods.
+    """
+    job_q = queue.Queue()
+    result_q = queue.Queue()
+
+    # This is based on the examples in the official docs of multiprocessing.
+    # get_{job|result}_q return synchronized proxies for the actual Queue
+    # objects.
+    class QueueManager(BaseManager):
+        pass
+
+    QueueManager.register('get_job_q', callable=lambda: job_q)
+    QueueManager.register('get_result_q', callable=lambda: result_q)
+
+    manager = QueueManager(address=('', port), authkey=authkey)
+    manager.start()
+    print('Server started at port %s' % port)
+    return manager
 
 
 class ArticleNotFound(Exception):
@@ -139,6 +166,9 @@ def main():
     port = cla_parser.get_argument('p')
     host = cla_parser.get_argument('host')
 
+    run_server = cla_parser.get_argument('s')
+    run_client = cla_parser.get_argument('c')
+
     print(f"Pubmed ID: {pmid}, articles to download: {n_articles}")
     print(f"Number of peons: {n_peons}")
     print(f"Port number: {port}")
@@ -150,7 +180,23 @@ def main():
 
     print(f"Reference IDs: {ref_ids}")
 
-    download_auths.download_paper(ref_ids[0])
+    # download_auths.download_paper(ref_ids[0])
+
+    print(f"Server: {run_server}")
+    print(f"Client: {run_client}")
+
+    if run_server:
+        server = mp.Process(target=runserver, args=(download_auths.download_paper, ref_ids[:n_articles], port))
+        server.start()
+        time.sleep(1)
+        server.join()
+
+
+    if run_client:
+        print('Selected client mode.')
+        client = mp.Process(target=runclient, args=(n_peons, host, port))
+        client.start()
+        client.join()
 
 
 if __name__ == "__main__":
