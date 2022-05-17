@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 import pickle
 
 from arg_parser import ArgumentParser
+from manager import ProxyManager
 
 
 __author__ = "Stijn Arends"
@@ -17,38 +18,13 @@ __data__ = "14-5-2022"
 
 POISONPILL = "MEMENTOMORI"
 ERROR = "DOH"
-# IP = ''
-# PORTNUM = 5381
-AUTHKEY = b'whathasitgotinitspocketsesss?'
 
 Entrez.email = "stijnarends@live.nl"
 Entrez.api_key = '9f94f8d674e1918a47cfa8afc303838b0408'
 
-
-def make_server_manager(port, authkey):
-    """ Create a manager for the server, listening on the given port.
-        Return a manager object with get_job_q and get_result_q methods.
-    """
-    job_q = queue.Queue()
-    result_q = queue.Queue()
-
-    # This is based on the examples in the official docs of multiprocessing.
-    # get_{job|result}_q return synchronized proxies for the actual Queue
-    # objects.
-    class QueueManager(BaseManager):
-        pass
-
-    QueueManager.register('get_job_q', callable=lambda: job_q)
-    QueueManager.register('get_result_q', callable=lambda: result_q)
-
-    manager = QueueManager(address=('', port), authkey=authkey)
-    manager.start()
-    print('Server started at port %s' % port)
-    return manager
-
-def run_server(fn, data, port):
+def run_server(fn, data, proxy_manager):
     # Start a shared manager server and access its queues
-    manager = make_server_manager(port, AUTHKEY)
+    manager = proxy_manager.make_server_manager()
     shared_job_q = manager.get_job_q()
     shared_result_q = manager.get_result_q()
     
@@ -84,27 +60,8 @@ def run_server(fn, data, port):
     manager.shutdown()
     print(results)
 
-
-def make_client_manager(ip, port, authkey):
-    """ Create a manager for a client. This manager connects to a server on the
-        given address and exposes the get_job_q and get_result_q methods for
-        accessing the shared queues from the server.
-        Return a manager object.
-    """
-    class ServerQueueManager(BaseManager):
-        pass
-
-    ServerQueueManager.register('get_job_q')
-    ServerQueueManager.register('get_result_q')
-
-    manager = ServerQueueManager(address=(ip, port), authkey=authkey)
-    manager.connect()
-
-    print('Client connected to %s:%s' % (ip, port))
-    return manager
-
-def runclient(num_processes, ip, port):
-    manager = make_client_manager(ip, port, AUTHKEY)
+def run_client(num_processes, proxy_manager):
+    manager = proxy_manager.make_client_manager()
     job_q = manager.get_job_q()
     result_q = manager.get_result_q()
     run_workers(job_q, result_q, num_processes)
@@ -140,6 +97,7 @@ def peon(job_q, result_q):
         except queue.Empty:
             print("sleepytime for", my_name)
             time.sleep(1)
+
 
 class ArticleNotFound(Exception):
     """Exception raised for 404 errors.
@@ -260,8 +218,8 @@ def main():
     port = cla_parser.get_argument('p')
     host = cla_parser.get_argument('host')
 
-    run_server = cla_parser.get_argument('s')
-    run_client = cla_parser.get_argument('c')
+    server_mode = cla_parser.get_argument('s')
+    client_mode = cla_parser.get_argument('c')
 
     print(f"Pubmed ID: {pmid}, articles to download: {n_articles}")
     print(f"Number of peons: {n_peons}")
@@ -274,21 +232,20 @@ def main():
 
     print(f"Reference IDs: {ref_ids}")
 
-    # download_auths.download_paper(ref_ids[0])
 
-    print(f"Server: {run_server}")
-    print(f"Client: {run_client}")
+    auth_key= b'whathasitgotinitspocketsesss?'
+    proxy_manager = ProxyManager(host, port, auth_key=auth_key)
 
-    if run_server:
-        server = mp.Process(target=run_server, args=(download_auths.download_paper, ref_ids[:n_articles], port))
+    if server_mode:
+        server = mp.Process(target=run_server, args=(download_auths.download_paper, ref_ids[:n_articles], proxy_manager))
         server.start()
         time.sleep(1)
         server.join()
 
 
-    if run_client:
+    if client_mode:
         print('Selected client mode.')
-        client = mp.Process(target=runclient, args=(n_peons, host, port))
+        client = mp.Process(target=run_client, args=(n_peons, proxy_manager))
         client.start()
         client.join()
 
