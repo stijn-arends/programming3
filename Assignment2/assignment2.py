@@ -157,20 +157,6 @@ class DownloadAuthorList:
 
         return references
 
-    def download_paper(self, pmid: int) -> None:
-        """
-        Download an article given a pubmed id in XML format.
-
-        :parameters
-        -----------
-        pmid - int
-            Pubmed ID
-        """
-        print(f"Downloading paper: {pmid}")
-        paper = Entrez.efetch(db="pmc", id=pmid, rettype="XML", retmode="text").read()
-        self.get_authors(pmid)
-
-
     def get_authors(self, pmid:int) -> None:
         """
         Get the names of the authors of a paper.
