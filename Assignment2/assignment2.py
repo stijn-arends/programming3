@@ -168,29 +168,28 @@ class DownloadAuthorList:
         """
         print(f"Downloading paper: {pmid}")
         paper = Entrez.efetch(db="pmc", id=pmid, rettype="XML", retmode="text").read()
-        self.get_author_names(paper, pmid)
+        self.get_authors(pmid)
 
 
-    def get_author_names(self, paper:bytes, pmid:int) -> None:
+    def get_authors(self, pmid:int) -> None:
         """
         Get the names of the authors of a paper.
 
         :parameter
         ----------
-        paper - bytes
-            Paper in xml format stored in a bytes object
+        pmid - int
+            Pubmed ID
         """
-        bs4_data = BeautifulSoup(paper, 'xml')
-
-        authors = []
-        for author_info in bs4_data.find_all('name'): 
-            name = " ".join(child.text for child in author_info.findChildren())
-            authors.append(name)
-
-        # print(f"Authors: {tuple(authors)}")
+        try:
+            with Entrez.esummary(db="pubmed", id=pmid) as handle:
+                info = Entrez.read(handle)
+                authors = tuple(info[0]['AuthorList'])
+        except RuntimeError:
+            print(f"Nothing found for pumed ID: {pmid}")
+            authors = (None)
 
         output_file = self.out_path / f"{pmid}.authors.pickle"
-        self.write_pickle(tuple(authors), output_file)
+        self.write_pickle(authors, output_file)
 
     @staticmethod
     def write_pickle(data: Any, file: Path) -> None:
@@ -237,7 +236,7 @@ def main():
     proxy_manager = ProxyManager(host, port, auth_key=auth_key)
 
     if server_mode:
-        server = mp.Process(target=run_server, args=(download_auths.download_paper, ref_ids[:n_articles], proxy_manager))
+        server = mp.Process(target=run_server, args=(download_auths.get_authors, ref_ids[:n_articles], proxy_manager))
         server.start()
         time.sleep(1)
         server.join()
