@@ -1,102 +1,22 @@
-import sys
 from Bio import Entrez
 import multiprocessing as mp
-from multiprocessing.managers import BaseManager, SyncManager
-import time, queue, os
+import time, os
 from pathlib import Path
 from typing import Any
-from bs4 import BeautifulSoup
 import pickle
 
 from arg_parser import ArgumentParser
-from manager import ProxyManager
+from server_side import ServerSide
+from client_side import ClientSide
 
 
 __author__ = "Stijn Arends"
 __version__ = "v0.1"
 __data__ = "14-5-2022"
 
-POISONPILL = "MEMENTOMORI"
-ERROR = "DOH"
 
 Entrez.email = "stijnarends@live.nl"
 Entrez.api_key = '9f94f8d674e1918a47cfa8afc303838b0408'
-
-def run_server(fn, data, proxy_manager):
-    # Start a shared manager server and access its queues
-    manager = proxy_manager.make_server_manager()
-    shared_job_q = manager.get_job_q()
-    shared_result_q = manager.get_result_q()
-    
-    if not data:
-        print("Gimme something to do here!")
-        return
-    
-    print("Sending data!")
-    for d in data:
-        shared_job_q.put({'fn' : fn, 'arg' : d})
-    
-    time.sleep(2)
-
-    results = []
-    while True:
-        try:
-            result = shared_result_q.get_nowait()
-            results.append(result)
-            print("Got result!", result)
-            if len(results) == len(data):
-                print("Got all results!")
-                break
-        except queue.Empty:
-            time.sleep(1)
-            continue
-    # Tell the client process no more data will be forthcoming
-    print("Time to kill some peons!")
-    shared_job_q.put(POISONPILL)
-    # Sleep a bit before shutting down the server - to give clients time to
-    # realize the job queue is empty and exit in an orderly way.
-    time.sleep(5)
-    print("Aaaaaand we're done for the server!")
-    manager.shutdown()
-    print(results)
-
-def run_client(num_processes, proxy_manager):
-    manager = proxy_manager.make_client_manager()
-    job_q = manager.get_job_q()
-    result_q = manager.get_result_q()
-    run_workers(job_q, result_q, num_processes)
-    
-def run_workers(job_q, result_q, num_processes):
-    processes = []
-    for p in range(num_processes):
-        temP = mp.Process(target=peon, args=(job_q, result_q))
-        processes.append(temP)
-        temP.start()
-    print("Started %s workers!" % len(processes))
-    for temP in processes:
-        temP.join()
-
-def peon(job_q, result_q):
-    my_name = mp.current_process().name
-    while True:
-        try:
-            job = job_q.get_nowait()
-            if job == POISONPILL:
-                job_q.put(POISONPILL)
-                print("Aaaaaaargh", my_name)
-                return
-            else:
-                try:
-                    result = job['fn'](job['arg'])
-                    print("Peon %s Workwork on %s!" % (my_name, job['arg']))
-                    result_q.put({'job': job, 'result' : result})
-                except NameError:
-                    print("Can't find yer fun Bob!")
-                    result_q.put({'job': job, 'result' : ERROR})
-
-        except queue.Empty:
-            print("sleepytime for", my_name)
-            time.sleep(1)
 
 
 class ArticleNotFound(Exception):
@@ -210,6 +130,7 @@ def main():
     print(f"Number of peons: {n_peons}")
     print(f"Port number: {port}")
     print(f"host: {host}")
+    
     out_path = Path(os.path.abspath(os.path.dirname(__file__))) / "output"
     download_auths = DownloadAuthorList(n_articles=n_articles, out_path=out_path)
 
@@ -219,10 +140,11 @@ def main():
 
 
     auth_key= b'whathasitgotinitspocketsesss?'
-    proxy_manager = ProxyManager(host, port, auth_key=auth_key)
+    poison_pill = "MEMENTOMORI"
 
     if server_mode:
-        server = mp.Process(target=run_server, args=(download_auths.get_authors, ref_ids[:n_articles], proxy_manager))
+        server_side = ServerSide(ip=host, port=port, auth_key=auth_key, poison_pill=poison_pill)
+        server = mp.Process(target=server_side.run_server, args=(download_auths.get_authors, ref_ids[:n_articles]))
         server.start()
         time.sleep(1)
         server.join()
@@ -230,7 +152,8 @@ def main():
 
     if client_mode:
         print('Selected client mode.')
-        client = mp.Process(target=run_client, args=(n_peons, proxy_manager))
+        client_side = ClientSide(ip=host, port=port, auth_key=auth_key, poison_pill=poison_pill)
+        client = mp.Process(target=client_side.run_client, args=(n_peons,))
         client.start()
         client.join()
 
