@@ -9,7 +9,6 @@ and saving it in a pickle file.
 
 import multiprocessing as mp
 import time
-import os
 from pathlib import Path
 from typing import Any
 import pickle
@@ -142,7 +141,7 @@ def main():
     client_mode = cla_parser.get_argument('c')
 
     download_auths = DownloadAuthorList(n_articles=n_articles,
-        out_path=Path(os.path.abspath(os.path.dirname(__file__))) / "output")
+        out_path=Path(__file__).parent.absolute() / 'output')
 
     ref_ids = download_auths.get_id_references(pmid)
 
