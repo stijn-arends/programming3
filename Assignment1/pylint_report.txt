@@ -1,0 +1,23 @@
+ ************* Module assignment1
+ assignment1.py:32: convention (C0303, trailing-whitespace, ) Trailing whitespace
+ assignment1.py:42: convention (C0303, trailing-whitespace, ) Trailing whitespace
+ assignment1.py:71: convention (C0303, trailing-whitespace, ) Trailing whitespace
+ assignment1.py:124: convention (C0303, trailing-whitespace, ) Trailing whitespace
+ assignment1.py:128: convention (C0303, trailing-whitespace, ) Trailing whitespace
+ assignment1.py:137: convention (C0301, line-too-long, ) Line too long (116/100)
+ assignment1.py:146: convention (C0301, line-too-long, ) Line too long (147/100)
+ assignment1.py:197: convention (C0304, missing-final-newline, ) Final newline missing
+ assignment1.py:1: convention (C0114, missing-module-docstring, ) Missing module docstring
+ assignment1.py:55: refactor (R0201, no-self-use, DownloadPubmedPapers.get_id_references) Method could be a function
+ assignment1.py:107: refactor (R0903, too-few-public-methods, ArgumentParser) Too few public methods (1/2)
+ assignment1.py:176: convention (C0116, missing-function-docstring, main) Missing function or method docstring
+ assignment1.py:3: convention (C0411, wrong-import-order, ) standard import "import multiprocessing as mp" should be placed before "from Bio import Entrez"
+ assignment1.py:4: convention (C0411, wrong-import-order, ) standard import "import argparse" should be placed before "from Bio import Entrez"
+ assignment1.py:5: convention (C0411, wrong-import-order, ) standard import "import os" should be placed before "from Bio import Entrez"
+ assignment1.py:6: convention (C0411, wrong-import-order, ) standard import "from pathlib import Path" should be placed before "from Bio import Entrez"
+ assignment1.py:7: convention (C0411, wrong-import-order, ) standard import "from typing import Any" should be placed before "from Bio import Entrez"
+ 
+ ------------------------------------------------------------------
+ Your code has been rated at 7.67/10 (previous run: 2.50/10, +5.17)
+ 
+ 
