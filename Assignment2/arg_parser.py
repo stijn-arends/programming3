@@ -35,7 +35,7 @@ class ArgumentParser:
         parser - ArgumentParser
         """
         parser = argparse.ArgumentParser(prog=os.path.basename(__file__),
-            description="Python script that downloads papers from the reference" /
+            description="Python script that downloads papers from the reference" \
             "section from an article in pubmed.",
             epilog="Contact: stijnarend@live.nl")
 
