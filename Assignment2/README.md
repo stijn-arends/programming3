@@ -26,4 +26,3 @@ python3 assignment2.py -n <number_of_peons_per_client> [-c | -s] --port <portnum
 | Package                                                           | Version        |
 | ----------------------------------------------------------------- | :------------: |
 | [biopython](https://biopython.org/)                               | `1.79`         |
-| [pathlib](https://pathlib.readthedocs.io/en/0.5/l)                | `1.0.1`        |
