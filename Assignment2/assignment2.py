@@ -128,6 +128,7 @@ def main():
     """
     Get the supplied arguments and run the server and client code.
     """
+    start_time = time.time()
     # Get passed arguments
     cla_parser = ArgumentParser()
     pmid = cla_parser.get_argument('pubmed_id')
@@ -140,10 +141,14 @@ def main():
     server_mode = cla_parser.get_argument('s')
     client_mode = cla_parser.get_argument('c')
 
-    out_path = Path(os.path.abspath(os.path.dirname(__file__))) / "output"
-    download_auths = DownloadAuthorList(n_articles=n_articles, out_path=out_path)
+    download_auths = DownloadAuthorList(n_articles=n_articles,
+        out_path=Path(os.path.abspath(os.path.dirname(__file__))) / "output")
 
     ref_ids = download_auths.get_id_references(pmid)
+
+    if n_articles > len(ref_ids):
+        print(f"There are only {len(ref_ids)} articles - specified: {n_articles}")
+        n_articles = len(ref_ids)
 
     if server_mode:
         server_side = ServerSide(ip_adress=host, port=port,
@@ -163,6 +168,8 @@ def main():
         client = mp.Process(target=client_side.run_client, args=(n_peons,))
         client.start()
         client.join()
+
+    print(f"\n--- {time.time() - start_time} seconds ---")
 
 
 if __name__ == "__main__":
