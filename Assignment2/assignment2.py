@@ -88,18 +88,6 @@ class DownloadPubmedInfo:
 
         return references
 
-    def get_info(self, pmid:int) -> None:
-        """
-        Get pubmed info.
-
-        :parameters
-        ----------
-        pmid - int
-            Pubmed ID
-        """
-        self.get_authors(pmid)
-        self.download_paper(pmid)
-
     def get_authors(self, pmid:int) -> None:
         """
         Get the names of the authors of a paper.
@@ -180,10 +168,10 @@ def main():
     server_mode = cla_parser.get_argument('s')
     client_mode = cla_parser.get_argument('c')
 
-    download_auths = DownloadPubmedInfo(n_articles=n_articles,
+    download_pmed = DownloadPubmedInfo(n_articles=n_articles,
         out_path=Path(__file__).parent.absolute() / 'output')
 
-    ref_ids = download_auths.get_id_references(pmid)
+    ref_ids = download_pmed.get_id_references(pmid)
 
     if n_articles > len(ref_ids):
         print(f"There are only {len(ref_ids)} articles - specified: {n_articles}")
@@ -193,7 +181,8 @@ def main():
         server_side = ServerSide(ip_adress=host, port=port,
             auth_key=b'whathasitgotinitspocketsesss?',
             poison_pill="MEMENTOMORI")
-        server = mp.Process(target=server_side.run_server, args=(download_auths.get_info,
+        server = mp.Process(target=server_side.run_server, args=([download_pmed.download_paper,
+            download_pmed.get_authors],
             ref_ids[:n_articles]))
         server.start()
         time.sleep(1)
