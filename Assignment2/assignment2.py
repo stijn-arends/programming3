@@ -89,6 +89,14 @@ class DownloadPubmedInfo:
         return references
 
     def get_info(self, pmid:int) -> None:
+        """
+        Get pubmed info.
+
+        :parameters
+        ----------
+        pmid - int
+            Pubmed ID
+        """
         self.get_authors(pmid)
         self.download_paper(pmid)
 
