@@ -49,7 +49,7 @@ class ServerSide:
         return manager
 
 
-    def run_server(self, func_name, data) -> None:
+    def run_server(self, func_names, data) -> None:
         """
         Put jobs in the jobs queue and check if the data is being processed
         by checking if the result queue is getting filled. Stop all the clients when
@@ -72,10 +72,12 @@ class ServerSide:
             return
 
         print("Sending data!")
-        for dat in data:
-            shared_job_q.put({'func_name' : func_name, 'arg' : dat})
+        for func_name in func_names:
+            for dat in data:
+                shared_job_q.put({'func_name' : func_name, 'arg' : dat})
 
         time.sleep(2)
+        number_expected_results = len(func_names) * len(data)
 
         results = []
         while True:
@@ -83,7 +85,7 @@ class ServerSide:
                 result = shared_result_q.get_nowait()
                 results.append(result)
                 print("Got result!", result)
-                if len(results) == len(data):
+                if len(results) == number_expected_results:
                     print("Got all results!")
                     break
             except queue.Empty:
