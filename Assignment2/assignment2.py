@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 From a given pubmed IDs retrieve the pubmed IDs of the references
 from that article.
@@ -87,6 +88,10 @@ class DownloadAuthorList:
 
         return references
 
+    def get_info(self, pmid:int) -> None:
+        self.get_authors(pmid)
+        self.download_paper(pmid)
+
     def get_authors(self, pmid:int) -> None:
         """
         Get the names of the authors of a paper.
@@ -122,6 +127,33 @@ class DownloadAuthorList:
         with open(file, 'wb') as file_handle:
             pickle.dump(data, file_handle)
 
+    def download_paper(self, pmid: int) -> None:
+        """
+        Download an article given a pubmed id in XML format.
+
+        :parameters
+        -----------
+        pmid - int
+            Pubmed ID
+        """
+        print(f"Downloading paper: {pmid}")
+        paper = Entrez.efetch(db="pmc", id=pmid, rettype="XML", retmode="text").read()
+        self.write_out_paper(paper, pmid)
+
+    def write_out_paper(self, data:str, pmid:str) -> None:
+        """
+        Write out a paper in XML format.
+
+        :parameters
+        -----------
+        data - str
+            Content of a paper in a binary string.
+        pmid - int
+            Pubmed ID
+        """
+        with open(self.out_path / f'{pmid}.xml', 'wb') as file:
+            file.write(data)
+
 
 def main():
     """
@@ -153,7 +185,7 @@ def main():
         server_side = ServerSide(ip_adress=host, port=port,
             auth_key=b'whathasitgotinitspocketsesss?',
             poison_pill="MEMENTOMORI")
-        server = mp.Process(target=server_side.run_server, args=(download_auths.get_authors,
+        server = mp.Process(target=server_side.run_server, args=(download_auths.get_info,
             ref_ids[:n_articles]))
         server.start()
         time.sleep(1)
