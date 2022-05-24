@@ -41,7 +41,7 @@ class ArticleNotFound(Exception):
         super().__init__(self.message)
 
 
-class DownloadAuthorList:
+class DownloadPubmedInfo:
     """
     Download a number of papers that are referenced in a pubmed article.
     """
@@ -172,7 +172,7 @@ def main():
     server_mode = cla_parser.get_argument('s')
     client_mode = cla_parser.get_argument('c')
 
-    download_auths = DownloadAuthorList(n_articles=n_articles,
+    download_auths = DownloadPubmedInfo(n_articles=n_articles,
         out_path=Path(__file__).parent.absolute() / 'output')
 
     ref_ids = download_auths.get_id_references(pmid)
