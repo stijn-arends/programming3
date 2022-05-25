@@ -1,7 +1,7 @@
 # Assignment 3 of the porgramming 3 course
 * * *
 
-* Date: 21-5-2022
+* Date: 25-5-2022
 * Author: Stijn Arends
 * Assignment: [link](https://bioinf.nl/~martijn/master/programming3/assignment3.html)
 
