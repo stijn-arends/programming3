@@ -15,7 +15,7 @@ script_relative_dir=$(dirname "${BASH_SOURCE[0]}")
 echo $script_relative_dir
 
 # Output 
-out_folder=${script_relative_dir}/output
+out_folder=output # ${script_relative_dir}/
 out_time=${out_folder}/timings.txt
 out_blast=blastoutput.txt
 
