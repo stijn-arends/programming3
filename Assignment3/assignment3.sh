@@ -8,19 +8,19 @@
 #SBATCH --partition=assemblix
 
 # CPUs
-export cpus=16
+cpus=16
 
 # Get the relative directory of the script
 script_relative_dir=$(dirname "${BASH_SOURCE[0]}") 
 echo $script_relative_dir
 
 # Output 
-export out_folder=${script_relative_dir}/output
-export out_time=${out_folder}/timings.txt
-export out_blast=blastoutput.txt
+out_folder=${script_relative_dir}/output
+out_time=${out_folder}/timings.txt
+out_blast=blastoutput.txt
 
 # Input
-export query_file=MCRA.faa
+query_file=MCRA.faa
 export BLASTDB=/local-fs/datasets/
 
 echo "Output folder: ${out_folder}"
@@ -36,7 +36,7 @@ if [ ! -d "${out_folder}" ]; then
 fi
 
 
-for i in $( seq 1 $cpus )
+for i in $( seq 16 $cpus )
 do
     echo "Iteration: $i"
     /usr/bin/time -a --output ${out_time} -f "$i %e" blastp -query ${query_file} -db refseq_protein/refseq_protein -num_threads $i -outfmt 6 >> ${out_blast}
