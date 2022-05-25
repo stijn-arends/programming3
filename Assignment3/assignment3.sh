@@ -4,30 +4,42 @@
 #SBATCH --time 2:00:00
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=16
-#SBATCH --job-name=StijnAssg3
-#SBATCH --partition=assemblix 
+#SBATCH --job-name=BlastpStijn
+#SBATCH --partition=assemblix
 
+# CPUs
 export cpus=16
+
+# Get the relative directory of the script
+script_relative_dir=$(dirname "${BASH_SOURCE[0]}") 
+echo $script_relative_dir
+
+# Output 
+export out_folder=${script_relative_dir}/output
+export out_time=${out_folder}/timings.txt
+export out_blast=blastoutput.txt
+
+# Input
+export query_file=MCRA.faa
 export BLASTDB=/local-fs/datasets/
 
-# echo "Number of cpus:${cpus}"
+echo "Output folder: ${out_folder}"
 
-#for i in {1..16}; do echo "Cpu: ${i}"; done
+if [ ! -f "${query_file}" ]; then
+    echo "Invalid query file. File ${query_file} does not exist. Make sure that you are in the correct directory."
+    exit
+fi
 
-mkdir output
+if [ ! -d "${out_folder}" ]; then
+    mkdir ${out_folder}
+    echo "Output does not exists yet, creating..."
+fi
 
-# for i in $( seq 1 $cpus )
-# do 
-#     /usr/bin/time -a --output output/timings.txt -f %e blastp -query MRCA.faa -db ${BLASTDB}refseq_protein/refseq_protein -num_threads $i -outfmt 6 >> blastoutput.txt
-#     # awk 'BEGIN{ printf " $i" >> "output/timings.txt" }'
-#     sed -i "$ s/^/$i /" output/timings.txt
-# done
 
-for i in {1..16}
-do 
-    # echo "Processing using ${i} cores"
-    /usr/bin/time -a --output output/timings_check.txt -f %e blastp -query MRCA.faa -db ${BLASTDB}refseq_protein/refseq_protein -num_threads $i -outfmt 6 >> blastoutput.txt 
-    sed -i "$ s/^/$i /" output/timings_check.txt
+for i in $( seq 1 $cpus )
+do
+    echo "Iteration: $i"
+    /usr/bin/time -a --output ${out_time} -f "$i %e" blastp -query ${query_file} -db refseq_protein/refseq_protein -num_threads $i -outfmt 6 >> ${out_blast}
 done
 
-python3 plot_time_benefit.py output/timings_check.txt
+python3 plot_time_benefit.py ${out_time}
