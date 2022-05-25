@@ -36,7 +36,7 @@ if [ ! -d "${out_folder}" ]; then
 fi
 
 
-for i in $( seq 16 $cpus )
+for i in $( seq 1 $cpus )
 do
     echo "Iteration: $i"
     /usr/bin/time -a --output ${out_time} -f "$i %e" blastp -query ${query_file} -db refseq_protein/refseq_protein -num_threads $i -outfmt 6 >> ${out_blast}
