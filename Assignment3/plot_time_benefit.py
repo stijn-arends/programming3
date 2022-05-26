@@ -28,7 +28,7 @@ def read_data(file: str) -> pd.DataFrame:
     return df
 
 
-def plot_data(x, y) -> None:
+def plot_data(x, y, out_file) -> None:
     """
     Plot some data
     
@@ -43,7 +43,7 @@ def plot_data(x, y) -> None:
     plt.xlabel('Number of threads used')
     plt.ylabel("Execution time (s)")
     plt.title("Comparing execution time for blastp using different number of CPUs")
-    plt.savefig("output/timings.png")
+    plt.savefig(out_file)
 
 
 def get_arguments():
@@ -59,7 +59,11 @@ def get_arguments():
         epilog="Contact: stijnarend@live.nl")
 
     parser.add_argument("in_file", action="store", type=str, nargs=1,
-            help="Pubmed ID of the article to harvest for references to download.")
+            help="input file")
+
+    parser.add_argument("-o", "--output", dest='out',
+        action="store", type=str,
+            help="Name of output file")
 
     args = parser.parse_args()
     return args
@@ -68,6 +72,7 @@ def main():
     """main"""
     args = get_arguments()
     file = args.in_file[0]
+    out_file = args.out
 
     # file = "timings.txt"
     df = read_data(file)
@@ -75,7 +80,7 @@ def main():
     x = df.CPU.values
     y = df.time.values
 
-    plot_data(x, y)
+    plot_data(x, y, out_file)
 
 
 if __name__ == "__main__":
