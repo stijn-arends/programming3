@@ -15,7 +15,7 @@ output=output
 mkdir -p ${output}
 kmr_size_N50=${output}/kmr_size_N50.csv # ${out_folder}/kmr_size_N50.csv
 
-seq 31 2 31 | parallel -j16 "velveth ${output_kmr}{} {} -longPaired -fastq -separate ${forward} ${reverse} && velvetg ${output_kmr}{} && cat ${output_kmr}{}/contigs.fa | python3 assignment4.py -kmr {} >> ${kmr_size_N50}"
+seq 19 2 31 | parallel -j16 "velveth ${output_kmr}{} {} -longPaired -fastq -separate ${forward} ${reverse} && velvetg ${output_kmr}{} && cat ${output_kmr}{}/contigs.fa | python3 assignment4.py -kmr {} >> ${kmr_size_N50}"
 
 highest_N50=0
 highest_kmr=1
@@ -34,7 +34,7 @@ echo "The highest kmr is ${highest_kmr} with an N50 of: ${highest_N50}"
 mv ${output_kmr}${highest_kmr}/contigs.fa ${output}
 
 
-vals=($(seq 31 2 31))
+vals=($(seq 19 2 31))
 
 for kmr in ${vals[@]}
 do
