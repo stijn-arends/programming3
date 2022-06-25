@@ -6,8 +6,9 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import mean
 import pyspark.sql.functions as f
 import csv
+from pathlib import Path
 
-from xarray import corr
+# from xarray import corr
 
 
 
@@ -132,13 +133,30 @@ def create_spark_sesson(n_threads):
     return sc, spark
 
 
+def make_data_dir(path: Path) -> None:
+    """
+    Create a directory (if it does not exsit yet) to store the
+    data.
+
+    :Excepts
+    --------
+    FileExistsError
+        The directory already exists
+    """
+    try:
+        path.mkdir(parents=True, exist_ok=False)
+    except FileExistsError:
+        print(f"[make_data_dir] {path} already exists.")
+
+
 def main():
+
+    output_dir = Path("output")
+    make_data_dir(output_dir)
     n_threads = 16
 
     # Create a spark session
     sc, spark = create_spark_sesson(n_threads=n_threads)
-    # sc = SparkContext(f'local[{n_threads}]')
-    # spark = SparkSession(sc)
 
     file = "/data/dataprocessing/interproscan/all_bacilli.tsv"
 
@@ -199,7 +217,7 @@ def main():
     filename = "assignment5.csv"
         
     # writing to csv file 
-    with open(filename, 'w') as csvfile: 
+    with open(output_dir / filename, 'w') as csvfile: 
         # creating a csv writer object 
         csvwriter = csv.writer(csvfile) 
             
