@@ -5,6 +5,8 @@ Module to parse XML files containing the PubMed literature.
 """
 
 #IMPORTS
+import glob
+from pathlib import Path
 from bs4 import BeautifulSoup
 from Bio import Entrez, Medline
 
@@ -12,70 +14,66 @@ from Bio import Entrez, Medline
 Entrez.email = "stijnarends@live.nl"
 Entrez.api_key = '9f94f8d674e1918a47cfa8afc303838b0408'
 
-def read_xml(file):
-    with open(file, "br") as handle:
-        records = Entrez.read(handle)
-    return records['PubmedArticle']
 
-def read_bs4(file):
-    with open(file, 'br') as f:
-        file_contents = f.read() 
+class PubmedParser:
+    """
+    A class for parsing pubmed articles in XML format.
+    """
 
-    # 'xml' is the parser used. For html files, which BeautifulSoup is typically used for, it would be 'html.parser'.
-    soup = BeautifulSoup(file_contents, 'xml')
-    print(soup)
+    def __init__(self, xml_file: Path) -> None:
+        """
+        Initializer
+        
+        :parameters
+        -----------
+        xml_file - Path
+            XML file containing pubmed articles
+        """
+        self.data = self.read_pubmed_xml(xml_file)
+
+    @staticmethod
+    def read_pubmed_xml(file: Path) -> list:
+        """
+        Read a pubmed file in xml format that contains articles.
+
+        :parameters
+        -----------
+        file - Path
+            XML file containing pubmed articles
+        
+        :returns
+        --------
+        records - list
+            List containing information about articles inside of dictionaries.
+        """
+        with open(file, "br") as handle:
+            records = Entrez.read(handle)
+
+        return records['PubmedArticle']
+
+    def get_parsed_xml(self) -> list:
+        """
+        Get the parsed XML file.
+
+        :returns
+        --------
+        self.data - list
+            Parsed XML data containing info about the articles
+        """
+        return self.data
+
 
 
 def main():
-    data_dir = "/data/dataprocessing/NCBI/PubMed/"
+    data_dir = Path("/data/dataprocessing/NCBI/PubMed/")
     # file = "/data/dataprocessing/NCBI/PubMed/pubmed21n0151.xml"
     file = "/data/dataprocessing/NCBI/PubMed/pubmed21n0455.xml"
 
-    records = read_xml(file)
-    print(len(records))
-    print(records[0].keys())
-    print(records[0]["MedlineCitation"].keys())
-    print(records[0]['PubmedData'].keys())
+    # ---- test  1 -----
 
-    print(f"Reference list: {records[0]['PubmedData']['ReferenceList']}")
-    print(f"Title: {records[0]['MedlineCitation']['Article']['ArticleTitle']}")
-    print(len(records[0]))
-
-    print("\n")
-
-    #read_bs4(file)
-    print(records[1]["MedlineCitation"].keys())
-    print(records[1]['PubmedData'].keys())
-
-    print(f"Reference list: {records[100]['PubmedData']['ReferenceList']}")
-    print(f"Title: {records[100]['MedlineCitation']['Article']['ArticleTitle']}")
-    print(len(records[100]))
-
-    count = 0
-    for article in records:
-        if article['PubmedData']['ReferenceList'] and count < 3:
-            print(f"\nNumber: {count + 1}\n")
-            # print(article['PubmedData']['ReferenceList'])
-            print(article['PubmedData']['ReferenceList'])
-            print(type(article['PubmedData']['ReferenceList']))
-            print()
-            print(article['PubmedData']['ReferenceList'][0].keys())
-            # print(len(article['PubmedData']['ReferenceList']))
-            count += 1
-
-    count2 = 0
-    count3 = 0
-    for article in records:
-        if article['PubmedData']['ReferenceList']:
-            if len(article['PubmedData']['ReferenceList'][0]["Reference"][0]) == 2:
-                count2 += 1
-            else:
-                count3 += 1
-
-    print(f"Total number of articles: {len(records)}")
-    print(f"Number of articles with 2 keys: {count2}")
-    print(f"Other: {count3}")
-
+    parser = PubmedParser(file)
+    records = parser.get_parsed_xml()
 
 if __name__ == "__main__":
     main()
+    
