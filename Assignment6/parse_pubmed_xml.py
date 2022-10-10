@@ -14,6 +14,7 @@ from pathlib import Path
 import re
 from bs4 import BeautifulSoup
 from Bio import Entrez, Medline
+from numpy import str0
 
 
 Entrez.email = "stijnarends@live.nl"
@@ -31,10 +32,16 @@ class MedlineParser:
     :get_language
     :get_article_date
     :get_keywords
+    :get_pmc
     
     To-do:
         - pass the article to the init.
         - Try except checks for empty returns
+        - Add checks if the article contains the correct keys inside the init
+        - try to use asynchio to read in the file
+            Reading files with aynschio: https://www.twilio.com/blog/working-with-files-asynchronously-in-python-using-aiofiles-and-asyncio
+            Asynchio walkthorugh: https://realpython.com/async-io-python/
+        - turn the get function into asyncio functions
     """
 
     def __init__(self) -> None:
@@ -46,11 +53,25 @@ class MedlineParser:
         """
         return article["MedlineCitation"]['Article']['ArticleTitle']
 
-    def get_pmid(self, article) -> int:
+    def get_pmid(self, article) -> str:
         """
         Get the pubmed ID.
         """
-        return article["MedlineCitation"]['PMID']
+        if "PMID" in article["MedlineCitation"]:
+            pmid = article["MedlineCitation"]['PMID']
+        else:
+            pmid = self._search_pmid_articleIdList(article['PubmedData']['ArticleIdList'] )
+        return pmid
+
+    def _search_pmid_articleIdList(self, article_id_list) -> str:
+        """
+        Search for the PMID inside of the ArticleIdList which is a key inside
+        of the PubmedData.
+        """
+        pattern = re.compile("^\d+$")
+        matches = [str(s) for s in article_id_list if pattern.match(s)]
+        pmid = matches[0] if matches else "" # Grab the match if it found it
+        return pmid
 
     def get_author(self, article) -> str:
         """
@@ -100,7 +121,6 @@ class MedlineParser:
         elocation_id = article["MedlineCitation"]['Article']['ELocationID']
         doi_list = elocation_id if len(elocation_id) > 0 else article['PubmedData']['ArticleIdList']
         doi = self._search_doi(doi_list)
-
         return doi
 
     def _search_doi(self, doi_list) -> str:
@@ -109,17 +129,30 @@ class MedlineParser:
         using regex.
 
         optional pattern: '\b(10[.][0-9]{4,}(?:[.][0-9]+)*/(?:(?!["&\'<>])[[:graph:]])+)\b'
+        pattern found here: https://stackoverflow.com/questions/27910/finding-a-doi-in-a-document-or-page
         """
         # Use a regex pattern to extract the DOI from the list of strings
         pattern = re.compile('(10.(\d)+\/(\S)+)')
         matches = [str(s) for s in doi_list if pattern.match(s)]
-        doi = matches[0] if matches else ""
+        doi = matches[0] if matches else "" # Grab the match if it found it
         return doi
+
+    def get_pmc(self, article) -> str:
+        """
+        Get the PMC of the article.
+        """
+        article_id_list = article['PubmedData']['ArticleIdList']
+        pattern = re.compile('^PMC\d+$')
+        matches = [str(s) for s in article_id_list if pattern.match(s)]
+        pmc = matches[0] if matches else "" # Grab the match if it found it
+        return pmc
 
 
 class PubmedParser:
     """
     A class for parsing pubmed articles in XML format.
+
+    :get_publish_date
     """
 
     def __init__(self, xml_file: Path, medline_parser: MedlineParser) -> None:
@@ -165,12 +198,12 @@ class PubmedParser:
         """
         return self.data
 
-
     def parse_articles(self):
         """
         Create a dictionary of lists and save the results in here.
         """
         # file 47:48 has elocationID
+        # file 24:25 has a PMC
         for article in self.data[48:49]:
             # print(article)
             pmid = self.medline_parser.get_pmid(article)
@@ -189,6 +222,8 @@ class PubmedParser:
             print(f"Language: {language}")
             doi = self.medline_parser.get_doi(article)
             print(f"DOI: {doi}")
+            pmc = self.medline_parser.get_pmc(article)
+            print(f"PMC: {pmc}")
 
 
 def main():
