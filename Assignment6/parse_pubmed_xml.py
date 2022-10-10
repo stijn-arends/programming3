@@ -11,6 +11,7 @@ To-do:
 #IMPORTS
 import glob
 from pathlib import Path
+import re
 from bs4 import BeautifulSoup
 from Bio import Entrez, Medline
 
@@ -30,25 +31,28 @@ class MedlineParser:
     :get_language
     :get_article_date
     :get_keywords
-    :
+    
+    To-do:
+        - pass the article to the init.
+        - Try except checks for empty returns
     """
 
     def __init__(self) -> None:
         pass
 
-    def get_title(self, article):
+    def get_title(self, article) -> str:
         """
         Get the title.
         """
         return article["MedlineCitation"]['Article']['ArticleTitle']
 
-    def get_pmid(self, article):
+    def get_pmid(self, article) -> int:
         """
         Get the pubmed ID.
         """
         return article["MedlineCitation"]['PMID']
 
-    def get_author(self, article):
+    def get_author(self, article) -> str:
         """
         Get the main author of the article.
         """
@@ -57,7 +61,7 @@ class MedlineParser:
 
         return str(fore_name + " " + last_name)
 
-    def get_co_authors(self, article):
+    def get_co_authors(self, article) -> list[str]:
         """
         Get the co authors
         """
@@ -68,10 +72,49 @@ class MedlineParser:
                 last_name = author["LastName"]
                 fore_name= author["ForeName"]
                 co_author_names.append(str(fore_name + " " + last_name))
-
-        # print(article['MedlineCitation']['Article']['AuthorList'])
-        # print(co_author_names)
         return co_author_names
+
+    def get_journal(self, article) -> str:
+        """
+        Get the journal of an article.
+        """
+        return article["MedlineCitation"]['Article']['Journal']['Title']
+
+    def get_keywords(self, article) -> list[str]:
+        """
+        Get the key words of an article.
+        """
+        key_words = [str(word) for word in article["MedlineCitation"]['KeywordList'][0]]
+        return key_words
+
+    def get_language(self, article):
+        """
+        Get the langauge of an article.
+        """
+        return article["MedlineCitation"]['Article']['Language'][0]
+
+    def get_doi(self, article) -> str:
+        """
+        Get the DOI of an article.
+        """ 
+        elocation_id = article["MedlineCitation"]['Article']['ELocationID']
+        doi_list = elocation_id if len(elocation_id) > 0 else article['PubmedData']['ArticleIdList']
+        doi = self._search_doi(doi_list)
+
+        return doi
+
+    def _search_doi(self, doi_list) -> str:
+        """
+        Search for the DOI inside of a list of potential DOIs
+        using regex.
+
+        optional pattern: '\b(10[.][0-9]{4,}(?:[.][0-9]+)*/(?:(?!["&\'<>])[[:graph:]])+)\b'
+        """
+        # Use a regex pattern to extract the DOI from the list of strings
+        pattern = re.compile('(10.(\d)+\/(\S)+)')
+        matches = [str(s) for s in doi_list if pattern.match(s)]
+        doi = matches[0] if matches else ""
+        return doi
 
 
 class PubmedParser:
@@ -127,8 +170,9 @@ class PubmedParser:
         """
         Create a dictionary of lists and save the results in here.
         """
-        for article in self.data[:1]:
-            print(article)
+        # file 47:48 has elocationID
+        for article in self.data[48:49]:
+            # print(article)
             pmid = self.medline_parser.get_pmid(article)
             print(f"\nPubmed ID: {pmid}")
             title = self.medline_parser.get_title(article)
@@ -137,14 +181,27 @@ class PubmedParser:
             print(f"Author: {author}")
             co_authors = self.medline_parser.get_co_authors(article)
             print(f"Co-authors: {co_authors}")
-
-
+            journal = self.medline_parser.get_journal(article)
+            print(f"Journal: {journal}")
+            key_words = self.medline_parser.get_keywords(article)
+            print(f"Key words: {key_words}")
+            language = self.medline_parser.get_language(article)
+            print(f"Language: {language}")
+            doi = self.medline_parser.get_doi(article)
+            print(f"DOI: {doi}")
 
 
 def main():
     data_dir = Path("/data/dataprocessing/NCBI/PubMed/")
     # file = "/data/dataprocessing/NCBI/PubMed/pubmed21n0151.xml"
+    # This contains one option for referecing using PMID
     file = "/data/dataprocessing/NCBI/PubMed/pubmed21n0455.xml"
+
+    # This contains the other option for referencing using AUthor ID
+    file_2 = "/data/dataprocessing/NCBI/PubMed/pubmed21n0591.xml"
+
+    # Contains empty reference
+    file_3 = "/data/dataprocessing/NCBI/PubMed/pubmed21n0591.xml"
 
     # ---- test  1 -----
 
