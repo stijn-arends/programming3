@@ -9,12 +9,11 @@ To-do:
 """
 
 #IMPORTS
-import glob
+# import glob
 from pathlib import Path
 import re
-from bs4 import BeautifulSoup
-from Bio import Entrez, Medline
-from numpy import str0
+# from bs4 import BeautifulSoup
+from Bio import Entrez
 
 
 Entrez.email = "stijnarends@live.nl"
@@ -33,18 +32,25 @@ class MedlineParser:
     :get_article_date
     :get_keywords
     :get_pmc
-    
+
     To-do:
         - pass the article to the init.
         - Try except checks for empty returns
         - Add checks if the article contains the correct keys inside the init
         - try to use asynchio to read in the file
-            Reading files with aynschio: https://www.twilio.com/blog/working-with-files-asynchronously-in-python-using-aiofiles-and-asyncio
+            Reading files with aynschio:
+            https://www.twilio.com/blog/working-with-files-asynchronously-in-python-using-aiofiles-and-asyncio
             Asynchio walkthorugh: https://realpython.com/async-io-python/
         - turn the get function into asyncio functions
+        - Move this class to a seperate module
     """
 
     def __init__(self, article) -> None:
+        """
+        Initilizer of the MedlineParser class.
+
+        Check if the article contains the correct keys.
+        """
         self.article = article
 
         assert "MedlineCitation" in article, "Key: MedLineCitation not found inside the article."
@@ -53,25 +59,49 @@ class MedlineParser:
     def get_title(self) -> str:
         """
         Get the title.
+
+        :returns
+        --------
+        pmid - str
+            The title of the article, returns empty str when no title could be found
         """
-        return self.article["MedlineCitation"]['Article']['ArticleTitle']
+        try:
+            title = self.article["MedlineCitation"]['Article']['ArticleTitle']
+        except IndexError:
+            title = ""
+        return title
 
     def get_pmid(self) -> str:
         """
-        Get the pubmed ID.
+        Get the pubmed ID. First search the 'PMID' key inside the 'MedlineCitation'
+        section. If it can't be found there try to extract the PMID from the
+        'ArticleIdList' inside the PubmedData using regex.
+
+        :returns
+        --------
+        pmid - str
+            The PMID of the article, returns empty str when no PMID could be found
+
+        :see also
+        --------
+        MedlineParser._search_pmid_article_list()
         """
-        if "PMID" in self.article["MedlineCitation"]:
-            pmid = self.article["MedlineCitation"]['PMID']
-        else:
-            pmid = self._search_pmid_articleIdList(self.article['PubmedData']['ArticleIdList'] )
+        try:
+            if "PMID" in self.article["MedlineCitation"]:
+                pmid = self.article["MedlineCitation"]['PMID']
+            else:
+                pmid = self._search_pmid_article_list(self.article['PubmedData']['ArticleIdList'])
+        except IndexError:
+            pmid = ""
         return pmid
 
-    def _search_pmid_articleIdList(self, article_id_list) -> str:
+    @staticmethod
+    def _search_pmid_article_list(article_id_list) -> str:
         """
         Search for the PMID inside of the ArticleIdList which is a key inside
         of the PubmedData.
         """
-        pattern = re.compile("^\d+$")
+        pattern = re.compile(r"^\d+$")
         matches = [str(s) for s in article_id_list if pattern.match(s)]
         pmid = matches[0] if matches else "" # Grab the match if it found it
         return pmid
@@ -79,75 +109,160 @@ class MedlineParser:
     def get_author(self) -> str:
         """
         Get the main author of the article.
-        """
-        last_name = self.article['MedlineCitation']['Article']['AuthorList'][0]["LastName"]
-        fore_name= self.article['MedlineCitation']['Article']['AuthorList'][0]["ForeName"]
 
-        return str(fore_name + " " + last_name)
+        :returns
+        --------
+        full_name - str
+            Full name of the author, returns empty str when author name could not be found
+        """
+        try:
+            last_name = self.article['MedlineCitation']['Article']['AuthorList'][0]["LastName"]
+            fore_name= self.article['MedlineCitation']['Article']['AuthorList'][0]["ForeName"]
+            full_name = str(fore_name + " " + last_name)
+        except IndexError:
+            full_name = ""
+
+        return full_name
 
     def get_co_authors(self) -> list[str]:
         """
-        Get the co authors
+        Get the co authors of the article.
+
+        :returns
+        --------
+        co_authors - list[str]
+            A list of the co authors, returns empty list when no co authors could be found
         """
-        authors = self.article['MedlineCitation']['Article']['AuthorList'][1:]
-        co_author_names = []
-        if authors:
-            for author in authors:
-                last_name = author["LastName"]
-                fore_name= author["ForeName"]
-                co_author_names.append(str(fore_name + " " + last_name))
+        try:
+            authors = self.article['MedlineCitation']['Article']['AuthorList'][1:]
+            co_author_names = []
+            if authors:
+                for author in authors:
+                    last_name = author["LastName"]
+                    fore_name= author["ForeName"]
+                    co_author_names.append(str(fore_name + " " + last_name))
+        except IndexError:
+            co_author_names = []
         return co_author_names
 
     def get_journal(self) -> str:
         """
         Get the journal of an article.
+
+        :returns
+        --------
+        journal - str
+            The journal of the article, returns empty str when journal could not be found
         """
-        return self.article["MedlineCitation"]['Article']['Journal']['Title']
+        try:
+            journal = self.article["MedlineCitation"]['Article']['Journal']['Title']
+        except IndexError:
+            journal = ""
+        return journal
 
     def get_keywords(self) -> list[str]:
         """
         Get the key words of an article.
+
+        :returns
+        --------
+        key_words - list[str]
+            A list of the key words, returns empty list when no key words could be found
         """
-        key_words = [str(word) for word in self.article["MedlineCitation"]['KeywordList'][0]]
+        try:
+            key_words = [str(word) for word in self.article["MedlineCitation"]['KeywordList'][0]]
+        except IndexError:
+            key_words = []
         return key_words
 
     def get_language(self):
         """
         Get the langauge of an article.
+
+        :returns
+        --------
+        language - str
+            The language that was used to write the article,
+            returns empty str when language could not be found
         """
-        return self.article["MedlineCitation"]['Article']['Language'][0]
+        try:
+            language = self.article["MedlineCitation"]['Article']['Language'][0]
+        except IndexError:
+            language = ""
+        return language
 
     def get_doi(self) -> str:
         """
         Get the DOI of an article.
-        """ 
-        elocation_id = self.article["MedlineCitation"]['Article']['ELocationID']
-        doi_list = elocation_id if len(elocation_id) > 0 else self.article['PubmedData']['ArticleIdList']
-        doi = self._search_doi(doi_list)
+
+        First, search inside the 'ELocationID' key check if it is not empty and if
+        that is the case store the value. If it is empty look in the ArticleIdList key and
+        store that value. Next, using regex extract the DOI.
+
+        :returns
+        --------
+        doi - str
+            the Digital Object Identifier(DOI) of the article.
+
+        :see also
+        --------
+        MedlineParser._search_doi()
+        """
+        try:
+            elocation_id = self.article["MedlineCitation"]['Article']['ELocationID']
+            article_id_list = self.article['PubmedData']['ArticleIdList']
+            doi_list = elocation_id if len(elocation_id) > 0 else article_id_list
+            doi = self._search_doi(doi_list)
+        except IndexError:
+            doi = ""
         return doi
 
-    def _search_doi(self, doi_list) -> str:
+    @staticmethod
+    def _search_doi(doi_list) -> str:
         """
         Search for the DOI inside of a list of potential DOIs
         using regex.
 
         optional pattern: '\b(10[.][0-9]{4,}(?:[.][0-9]+)*/(?:(?!["&\'<>])[[:graph:]])+)\b'
-        pattern found here: https://stackoverflow.com/questions/27910/finding-a-doi-in-a-document-or-page
+        pattern found here:
+        https://stackoverflow.com/questions/27910/finding-a-doi-in-a-document-or-page
+
+        :parameters
+        -----------
+        doi_list - list
+            List of potential DOI strings
+
+        :returns
+        --------
+        doi - str
+            the Digital Object Identifier(DOI) of the article.
         """
         # Use a regex pattern to extract the DOI from the list of strings
-        pattern = re.compile('(10.(\d)+\/(\S)+)')
+        pattern = re.compile(r'(10.(\d)+\/(\S)+)')
         matches = [str(s) for s in doi_list if pattern.match(s)]
         doi = matches[0] if matches else "" # Grab the match if it found it
         return doi
 
     def get_pmc(self) -> str:
         """
-        Get the PMC of the article.
+        Get the Pubmed Central (PMC) identifier of the article.
+
+        Look trough the 'ArticleIdList' and try to find the PMC identifier
+        using regex. If nothing is found an empty string is returned.
+
+        :returns
+        --------
+        pmc - str
+            Either the PMC identifier of an article or an empty string if
+            it does not have one.
         """
-        article_id_list = self.article['PubmedData']['ArticleIdList']
-        pattern = re.compile('^PMC\d+$')
-        matches = [str(s) for s in article_id_list if pattern.match(s)]
-        pmc = matches[0] if matches else "" # Grab the match if it found it
+        try:
+            article_id_list = self.article['PubmedData']['ArticleIdList']
+            pattern = re.compile(r'^PMC\d+$')
+            matches = [str(s) for s in article_id_list if pattern.match(s)]
+            pmc = matches[0] if matches else "" # Grab the match if it found it
+        except IndexError:
+            pmc = ""
         return pmc
 
 
@@ -162,14 +277,13 @@ class PubmedParser:
     def __init__(self, xml_file: Path) -> None:
         """
         Initializer
-        
+
         :parameters
         -----------
         xml_file - Path
             XML file containing pubmed articles
         """
         self.data = self.read_pubmed_xml(xml_file)
-        # self.medline_parser = medline_parser
 
     @staticmethod
     def read_pubmed_xml(file: Path) -> list:
@@ -180,7 +294,7 @@ class PubmedParser:
         -----------
         file - Path
             XML file containing pubmed articles
-        
+
         :returns
         --------
         records - list
@@ -208,7 +322,7 @@ class PubmedParser:
         """
         # file 47:48 has elocationID
         # file 24:25 has a PMC
-        for article in self.data[48:49]:
+        for article in self.data[24:25]:
             # print(article)
             medline_parser = MedlineParser(article)
             pmid = medline_parser.get_pmid()
@@ -232,6 +346,9 @@ class PubmedParser:
 
 
 def main():
+    """
+    Main func.
+    """
     data_dir = Path("/data/dataprocessing/NCBI/PubMed/")
     # file = "/data/dataprocessing/NCBI/PubMed/pubmed21n0151.xml"
     # This contains one option for referecing using PMID
