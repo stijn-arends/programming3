@@ -44,23 +44,26 @@ class MedlineParser:
         - turn the get function into asyncio functions
     """
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, article) -> None:
+        self.article = article
 
-    def get_title(self, article) -> str:
+        assert "MedlineCitation" in article, "Key: MedLineCitation not found inside the article."
+        assert "PubmedData" in article, "Key: PubmedData not found inside the article."
+
+    def get_title(self) -> str:
         """
         Get the title.
         """
-        return article["MedlineCitation"]['Article']['ArticleTitle']
+        return self.article["MedlineCitation"]['Article']['ArticleTitle']
 
-    def get_pmid(self, article) -> str:
+    def get_pmid(self) -> str:
         """
         Get the pubmed ID.
         """
-        if "PMID" in article["MedlineCitation"]:
-            pmid = article["MedlineCitation"]['PMID']
+        if "PMID" in self.article["MedlineCitation"]:
+            pmid = self.article["MedlineCitation"]['PMID']
         else:
-            pmid = self._search_pmid_articleIdList(article['PubmedData']['ArticleIdList'] )
+            pmid = self._search_pmid_articleIdList(self.article['PubmedData']['ArticleIdList'] )
         return pmid
 
     def _search_pmid_articleIdList(self, article_id_list) -> str:
@@ -73,20 +76,20 @@ class MedlineParser:
         pmid = matches[0] if matches else "" # Grab the match if it found it
         return pmid
 
-    def get_author(self, article) -> str:
+    def get_author(self) -> str:
         """
         Get the main author of the article.
         """
-        last_name = article['MedlineCitation']['Article']['AuthorList'][0]["LastName"]
-        fore_name= article['MedlineCitation']['Article']['AuthorList'][0]["ForeName"]
+        last_name = self.article['MedlineCitation']['Article']['AuthorList'][0]["LastName"]
+        fore_name= self.article['MedlineCitation']['Article']['AuthorList'][0]["ForeName"]
 
         return str(fore_name + " " + last_name)
 
-    def get_co_authors(self, article) -> list[str]:
+    def get_co_authors(self) -> list[str]:
         """
         Get the co authors
         """
-        authors = article['MedlineCitation']['Article']['AuthorList'][1:]
+        authors = self.article['MedlineCitation']['Article']['AuthorList'][1:]
         co_author_names = []
         if authors:
             for author in authors:
@@ -95,31 +98,31 @@ class MedlineParser:
                 co_author_names.append(str(fore_name + " " + last_name))
         return co_author_names
 
-    def get_journal(self, article) -> str:
+    def get_journal(self) -> str:
         """
         Get the journal of an article.
         """
-        return article["MedlineCitation"]['Article']['Journal']['Title']
+        return self.article["MedlineCitation"]['Article']['Journal']['Title']
 
-    def get_keywords(self, article) -> list[str]:
+    def get_keywords(self) -> list[str]:
         """
         Get the key words of an article.
         """
-        key_words = [str(word) for word in article["MedlineCitation"]['KeywordList'][0]]
+        key_words = [str(word) for word in self.article["MedlineCitation"]['KeywordList'][0]]
         return key_words
 
-    def get_language(self, article):
+    def get_language(self):
         """
         Get the langauge of an article.
         """
-        return article["MedlineCitation"]['Article']['Language'][0]
+        return self.article["MedlineCitation"]['Article']['Language'][0]
 
-    def get_doi(self, article) -> str:
+    def get_doi(self) -> str:
         """
         Get the DOI of an article.
         """ 
-        elocation_id = article["MedlineCitation"]['Article']['ELocationID']
-        doi_list = elocation_id if len(elocation_id) > 0 else article['PubmedData']['ArticleIdList']
+        elocation_id = self.article["MedlineCitation"]['Article']['ELocationID']
+        doi_list = elocation_id if len(elocation_id) > 0 else self.article['PubmedData']['ArticleIdList']
         doi = self._search_doi(doi_list)
         return doi
 
@@ -137,11 +140,11 @@ class MedlineParser:
         doi = matches[0] if matches else "" # Grab the match if it found it
         return doi
 
-    def get_pmc(self, article) -> str:
+    def get_pmc(self) -> str:
         """
         Get the PMC of the article.
         """
-        article_id_list = article['PubmedData']['ArticleIdList']
+        article_id_list = self.article['PubmedData']['ArticleIdList']
         pattern = re.compile('^PMC\d+$')
         matches = [str(s) for s in article_id_list if pattern.match(s)]
         pmc = matches[0] if matches else "" # Grab the match if it found it
@@ -153,9 +156,10 @@ class PubmedParser:
     A class for parsing pubmed articles in XML format.
 
     :get_publish_date
+    :get_references
     """
 
-    def __init__(self, xml_file: Path, medline_parser: MedlineParser) -> None:
+    def __init__(self, xml_file: Path) -> None:
         """
         Initializer
         
@@ -165,7 +169,7 @@ class PubmedParser:
             XML file containing pubmed articles
         """
         self.data = self.read_pubmed_xml(xml_file)
-        self.medline_parser = medline_parser
+        # self.medline_parser = medline_parser
 
     @staticmethod
     def read_pubmed_xml(file: Path) -> list:
@@ -206,23 +210,24 @@ class PubmedParser:
         # file 24:25 has a PMC
         for article in self.data[48:49]:
             # print(article)
-            pmid = self.medline_parser.get_pmid(article)
+            medline_parser = MedlineParser(article)
+            pmid = medline_parser.get_pmid()
             print(f"\nPubmed ID: {pmid}")
-            title = self.medline_parser.get_title(article)
+            title = medline_parser.get_title()
             print(f"Title: {title}")
-            author = self.medline_parser.get_author(article)
+            author = medline_parser.get_author()
             print(f"Author: {author}")
-            co_authors = self.medline_parser.get_co_authors(article)
+            co_authors = medline_parser.get_co_authors()
             print(f"Co-authors: {co_authors}")
-            journal = self.medline_parser.get_journal(article)
+            journal = medline_parser.get_journal()
             print(f"Journal: {journal}")
-            key_words = self.medline_parser.get_keywords(article)
+            key_words = medline_parser.get_keywords()
             print(f"Key words: {key_words}")
-            language = self.medline_parser.get_language(article)
+            language = medline_parser.get_language()
             print(f"Language: {language}")
-            doi = self.medline_parser.get_doi(article)
+            doi = medline_parser.get_doi()
             print(f"DOI: {doi}")
-            pmc = self.medline_parser.get_pmc(article)
+            pmc = medline_parser.get_pmc()
             print(f"PMC: {pmc}")
 
 
@@ -240,8 +245,8 @@ def main():
 
     # ---- test  1 -----
 
-    medline_parser = MedlineParser()
-    parser = PubmedParser(file, medline_parser)
+    # medline_parser = MedlineParser()
+    parser = PubmedParser(file)
 
     records = parser.get_parsed_xml()
 
