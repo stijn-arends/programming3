@@ -12,6 +12,8 @@ To-do:
 # import glob
 from pathlib import Path
 import re
+import datetime
+from typing import Any
 # from bs4 import BeautifulSoup
 from Bio import Entrez
 
@@ -45,7 +47,7 @@ class MedlineParser:
         - Move this class to a seperate module
     """
 
-    def __init__(self, article) -> None:
+    def __init__(self, article: dict) -> None:
         """
         Initilizer of the MedlineParser class.
 
@@ -117,8 +119,12 @@ class MedlineParser:
         """
         try:
             last_name = self.article['MedlineCitation']['Article']['AuthorList'][0]["LastName"]
-            fore_name= self.article['MedlineCitation']['Article']['AuthorList'][0]["ForeName"]
-            full_name = str(fore_name + " " + last_name)
+            initials = self.article['MedlineCitation']['Article']['AuthorList'][0]["Initials"]
+
+            # add . between and after the initals
+            if '.' not in initials:
+                initials = ".".join(initials) + '.'
+            full_name = str(last_name + ", " + initials)
         except IndexError:
             full_name = ""
 
@@ -139,8 +145,11 @@ class MedlineParser:
             if authors:
                 for author in authors:
                     last_name = author["LastName"]
-                    fore_name= author["ForeName"]
-                    co_author_names.append(str(fore_name + " " + last_name))
+                    initials = author["Initials"]
+                    # add . between and after the initals
+                    if '.' not in initials:
+                        initials = ".".join(initials) + '.'
+                    co_author_names.append(str(last_name + ", " + initials))
         except IndexError:
             co_author_names = []
         return co_author_names
