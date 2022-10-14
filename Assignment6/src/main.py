@@ -9,6 +9,7 @@ __version__ = "v.01"
 from pathlib import Path
 import time
 import multiprocessing as mp
+from datetime import datetime as dt
 
 from arg_parser import ArgumentParser, CLIArgValidator
 from server_side import ServerSide
@@ -17,24 +18,61 @@ from pubmed_parser.parse_pubmed_xml import PubmedParser
 
 
 def parse_file(file: Path, out_dir: Path) -> None:
+    """
+    Parse a pubmed article and write the contents to a CSV file.
+
+    :parameters
+    -----------
+    file - Path
+        pubmed file in xml format
+    out_dir - Path
+        output directory to store the results
+    """
     parser = PubmedParser(file)
     df = parser.parse_articles()
     out_file = out_dir / (file.stem + ".csv")
     df.to_csv(out_file, sep="\t", index=False, header=True)
 
-def main():
 
+def make_output_dir(path: Path) -> None:
+    """
+    Create a directory (if it does not exsit yet) to store the
+    data.
+
+    :parameter
+    ----------
+    path - Path
+        Path to a directory
+
+    :Excepts
+    --------
+    FileExistsError
+        The directory already exists
+    """
+    try:
+        path.mkdir(parents=True, exist_ok=False)
+    except FileExistsError:
+        print(f"[{make_output_dir.__name__}] {path} already exists.")
+
+
+def main() -> None:
+    """
+    Main script.
+    """
+    start_time = time.time()
     cla_parser = ArgumentParser()
     cla_validator = CLIArgValidator()
-    data_dir = Path(cla_parser.get_argument('d'))
-    print(f"Data dir: {data_dir}")
+    data_dir = cla_parser.get_argument('d')
 
-    data_files = list(data_dir.glob("*.xml"))
+    if data_dir:
+        data_dir = Path(data_dir)
+        data_files = list(data_dir.glob("*.xml"))
+        cla_validator.validate_input_file(data_dir)
 
-    # for files in data_files[:2]:
-    #     print(files)
-
-    cla_validator.validate_input_file(data_dir)
+    output_dir = cla_parser.get_argument('o')
+    if output_dir:
+        output_dir = Path(output_dir)
+        make_output_dir(output_dir)
 
     n_peons = cla_parser.get_argument('n')
     port = cla_parser.get_argument('p')
@@ -43,15 +81,16 @@ def main():
     server_mode = cla_parser.get_argument('s')
     client_mode = cla_parser.get_argument('c')
 
-    out_dir = Path("/commons/dsls/dsph/2022/test")
-    out_dir.mkdir(exist_ok=True)
+    # ---- Test server client mode ------
 
     if server_mode:
+        # out_dir = Path("/commons/dsls/dsph/2022/test")
+        # out_dir.mkdir(exist_ok=True)
         server_side = ServerSide(ip_adress=host, port=port,
             auth_key=b'whathasitgotinitspocketsesss?',
             poison_pill="MEMENTOMORI")
         server = mp.Process(target=server_side.run_server, args=(parse_file,
-            data_files[:2], out_dir))
+            data_files[:2], output_dir))
         server.start()
         time.sleep(1)
         server.join()
@@ -65,13 +104,13 @@ def main():
         client.start()
         client.join()
 
-
-    # ---- Test server client mode ------
-
-
-
+    elapsed_time = time.time() - start_time
+    days = 0
+    if elapsed_time >= 86400:
+        days = int(elapsed_time / 86400)
+    elapsed = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
+    print(f"\n---- Time: {days}:{elapsed} ----")
     # ----- End server client mode ------
-
 
 
     # data_dir = Path("/data/dataprocessing/NCBI/PubMed/")

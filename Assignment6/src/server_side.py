@@ -74,10 +74,8 @@ class ServerSide:
         print("Sending data!")
         # for func_name in func_names:
         for dat in data:
-            print(dat)
+            # print(dat)
             shared_job_q.put({'func_name' : func_name, 'arg' : dat, 'arg2': out_dir})
-
-        # print(f"Job queu: {shared_job_q}")
 
         time.sleep(2)
         number_expected_results = len(data) # len(func_names) * len(data)
@@ -102,4 +100,3 @@ class ServerSide:
         time.sleep(5)
         print("Aaaaaand we're done for the server!")
         manager.shutdown()
-        print(results)

@@ -151,12 +151,7 @@ class PubmedParser:
                     "ref_titles": ref_title_list}
         # Perhaps write the df out as pickle files
         df = pd.DataFrame(parsed_data)
-        # print(df.head(10))
-        # print(df.shape)
-        # print(sum(df.author == ""))
-
         df["publish_date"] = pd.to_datetime(df["publish_date"], errors='coerce')
-        # df["publish_date"].astype("datetime64")
         return df
 
 
