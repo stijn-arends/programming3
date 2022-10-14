@@ -7,7 +7,6 @@ import argparse
 import os
 from pathlib import Path
 from typing import Any
-from typing_extensions import Required
 
 __author__ = "Stijn Arends"
 __version__ = "v0.1"
@@ -20,12 +19,14 @@ class ArgumentParser:
     """
 
     def __init__(self) -> None:
+        """Initializer"""
         self.parser = self._create_argument_parser()
         # Print help if no arguments are supplied and stop the program
         if len(sys.argv) == 1:
             self.parser.print_help(sys.stderr)
             sys.exit(1)
         self.arguments = self.parser.parse_args()
+        self.check_arg_combi()
 
     @staticmethod
     def _create_argument_parser():
@@ -43,12 +44,16 @@ class ArgumentParser:
         parser.version = __version__
 
         parser.add_argument("-d", '--data_dir', action="store",
-                    dest="d", required=True, type=str,
+                    dest="d", required=False, type=str,
                     help="Location of the pubmed data.")
 
         parser.add_argument("-n", action="store",
                            dest="n", required=False, type=int, default=1,
                            help="Number of peons per client.")
+
+        parser.add_argument("-o", '--out-dir', action="store",
+                    dest="o", required=False, type=str,
+                    help="The output directory to store the results - required if server mode is selected")
 
         parser.add_argument("-p", '--port_number',dest='p',
                         help="The port number that will be used",
@@ -93,6 +98,22 @@ class ArgumentParser:
         else:
             value = None
         return value
+
+    def check_arg_combi(self) -> None:
+        """
+        Check if the data and output directory are specified when also
+        server mode is specified.
+        """
+        if self.get_argument('s') and not self.get_argument('d'):
+            self.parser.print_help(sys.stderr)
+            sys.exit("\nIf server mode has been selected please also provide the "\
+                "path to the data using the -d, or --data-dir flags.")
+
+        if self.get_argument('s') and not self.get_argument('o'):
+            self.parser.print_help(sys.stderr)
+            sys.exit("\nIf server mode has been selected please also provide the "\
+                "path to the output folder using the -o, or --output-dir flags.")
+
 
 class CLIArgValidator:
     """
