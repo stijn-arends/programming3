@@ -7,9 +7,20 @@ __version__ = "v.01"
 
 # IMPORTS
 from pathlib import Path
+import time
+import multiprocessing as mp
 
 from arg_parser import ArgumentParser, CLIArgValidator
+from server_side import ServerSide
+from client_side import ClientSide
 from pubmed_parser.parse_pubmed_xml import PubmedParser
+
+
+def parse_file(file: Path, out_dir: Path) -> None:
+    parser = PubmedParser(file)
+    df = parser.parse_articles()
+    out_file = out_dir / (file.stem + ".csv")
+    df.to_csv(out_file, sep="\t", index=False, header=True)
 
 def main():
 
@@ -18,10 +29,12 @@ def main():
     data_dir = Path(cla_parser.get_argument('d'))
     print(f"Data dir: {data_dir}")
 
+    data_files = list(data_dir.glob("*.xml"))
+
+    # for files in data_files[:2]:
+    #     print(files)
+
     cla_validator.validate_input_file(data_dir)
-
-
-    n_articles= cla_parser.get_argument('a')
 
     n_peons = cla_parser.get_argument('n')
     port = cla_parser.get_argument('p')
@@ -29,6 +42,37 @@ def main():
 
     server_mode = cla_parser.get_argument('s')
     client_mode = cla_parser.get_argument('c')
+
+    out_dir = Path("/commons/dsls/dsph/2022/test")
+    out_dir.mkdir(exist_ok=True)
+
+    if server_mode:
+        server_side = ServerSide(ip_adress=host, port=port,
+            auth_key=b'whathasitgotinitspocketsesss?',
+            poison_pill="MEMENTOMORI")
+        server = mp.Process(target=server_side.run_server, args=(parse_file,
+            data_files[:2], out_dir))
+        server.start()
+        time.sleep(1)
+        server.join()
+
+    if client_mode:
+        print('Selected client mode.')
+        client_side = ClientSide(ip_adress=host, port=port,
+            auth_key=b'whathasitgotinitspocketsesss?',
+            poison_pill="MEMENTOMORI")
+        client = mp.Process(target=client_side.run_client, args=(n_peons,))
+        client.start()
+        client.join()
+
+
+    # ---- Test server client mode ------
+
+
+
+    # ----- End server client mode ------
+
+
 
     # data_dir = Path("/data/dataprocessing/NCBI/PubMed/")
 
