@@ -155,7 +155,8 @@ class PubmedParser:
         # print(df.shape)
         # print(sum(df.author == ""))
 
-        df["publish_date"] = df["publish_date"].astype("datetime64")
+        df["publish_date"] = pd.to_datetime(df["publish_date"], errors='coerce')
+        # df["publish_date"].astype("datetime64")
         return df
 
 

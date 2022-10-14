@@ -31,12 +31,14 @@ def main():
     # File that contains an error whilst trying to get the pmid reference - problem solved
     file_6 = "/data/dataprocessing/NCBI/PubMed/pubmed21n1049.xml"
 
-    # Another datetime error.
+    # Another datetime error in both files - year is equal to 1 which causes an outofdatebound error.
     file_7 = "/data/dataprocessing/NCBI/PubMed/pubmed21n0542.xml"
+    file_8 = "/data/dataprocessing/NCBI/PubMed/pubmed21n0943.xml"
+    # pd.Timestamp('15000101')
 
     # ---- test  1 -----
 
-    # parser = PubmedParser(file_6)
+    # parser = PubmedParser(file_8)
 
     # # records = parser.get_parsed_xml()
 
@@ -44,7 +46,7 @@ def main():
 
     # print(df.head(10))
 
-    # print(df.ref_titles)
+    # # print(df.ref_titles)
 
     # title_refs = df[df["ref_titles"].str.len() != 0]
     # print(title_refs)
@@ -59,12 +61,12 @@ def main():
     out_dir.mkdir(exist_ok=True)
 
     for i, file in enumerate(data_dir.glob("*.xml")):
-        # if i > 1047:
-        print(f"Parsing file: n: {i+1}, name: {file.stem}")
-        parser = PubmedParser(file)
-        df = parser.parse_articles()
-        out_file = out_dir / (file.stem + ".csv")
-        df.to_csv(out_file, sep="\t", index=False, header=True)
+        if i > 941:
+            print(f"Parsing file: n: {i+1}, name: {file.stem}")
+            parser = PubmedParser(file)
+            df = parser.parse_articles()
+            out_file = out_dir / (file.stem + ".csv")
+            df.to_csv(out_file, sep="\t", index=False, header=True)
 
 
 if __name__ == "__main__":
