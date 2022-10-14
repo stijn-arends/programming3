@@ -8,10 +8,29 @@ __version__ = "v.01"
 # IMPORTS
 from pathlib import Path
 
+from arg_parser import ArgumentParser, CLIArgValidator
 from pubmed_parser.parse_pubmed_xml import PubmedParser
 
 def main():
-    data_dir = Path("/data/dataprocessing/NCBI/PubMed/")
+
+    cla_parser = ArgumentParser()
+    cla_validator = CLIArgValidator()
+    data_dir = Path(cla_parser.get_argument('d'))
+    print(f"Data dir: {data_dir}")
+
+    cla_validator.validate_input_file(data_dir)
+
+
+    n_articles= cla_parser.get_argument('a')
+
+    n_peons = cla_parser.get_argument('n')
+    port = cla_parser.get_argument('p')
+    host = cla_parser.get_argument('host')
+
+    server_mode = cla_parser.get_argument('s')
+    client_mode = cla_parser.get_argument('c')
+
+    # data_dir = Path("/data/dataprocessing/NCBI/PubMed/")
 
     # This contains one option for referecing using PMID
     # file = "/data/dataprocessing/NCBI/PubMed/pubmed21n0455.xml"
@@ -57,16 +76,16 @@ def main():
 
     # ----- test all files ----
 
-    out_dir = Path("/commons/dsls/dsph/2022/parsed_pubmed_articles")
-    out_dir.mkdir(exist_ok=True)
+    # out_dir = Path("/commons/dsls/dsph/2022/parsed_pubmed_articles")
+    # out_dir.mkdir(exist_ok=True)
 
-    for i, file in enumerate(data_dir.glob("*.xml")):
-        if i > 941:
-            print(f"Parsing file: n: {i+1}, name: {file.stem}")
-            parser = PubmedParser(file)
-            df = parser.parse_articles()
-            out_file = out_dir / (file.stem + ".csv")
-            df.to_csv(out_file, sep="\t", index=False, header=True)
+    # for i, file in enumerate(data_dir.glob("*.xml")):
+    #     if i > 941:
+    #         print(f"Parsing file: n: {i+1}, name: {file.stem}")
+    #         parser = PubmedParser(file)
+    #         df = parser.parse_articles()
+    #         out_file = out_dir / (file.stem + ".csv")
+    #         df.to_csv(out_file, sep="\t", index=False, header=True)
 
 
 if __name__ == "__main__":
