@@ -12,8 +12,8 @@ import multiprocessing as mp
 import json
 
 from arg_parser import ArgumentParser, CLIArgValidator
-from server_side import ServerSide
-from client_side import ClientSide
+from parallel_computing.server_side import ServerSide
+from parallel_computing.client_side import ClientSide
 from pubmed_parser.parse_pubmed_xml import PubmedParser
 
 
