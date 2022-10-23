@@ -18,6 +18,7 @@ class ServerSide:
     """
 
     def __init__(self, ip_adress: str, port: int, auth_key: str, poison_pill: str) -> None:
+        """Initializer"""
         self.ip_adress = ip_adress
         self.port = port
         self.auth_key = auth_key
@@ -49,7 +50,7 @@ class ServerSide:
         return manager
 
 
-    def run_server(self, func_name, data, out_dir) -> None:
+    def run_server(self, func_name, data, *args) -> None: # data, out_dir
         """
         Put jobs in the jobs queue and check if the data is being processed
         by checking if the result queue is getting filled. Stop all the clients when
@@ -72,13 +73,15 @@ class ServerSide:
             return
 
         print("Sending data!")
-        # for func_name in func_names:
         for dat in data:
-            # print(dat)
-            shared_job_q.put({'func_name' : func_name, 'arg' : dat, 'arg2': out_dir})
+            arguments = [arg for arg in args]
+            arguments.insert(0, dat)
+            shared_job_q.put({'func_name' : func_name, 'args' : arguments})
+
+        print("Queue is ready!")
 
         time.sleep(2)
-        number_expected_results = len(data) # len(func_names) * len(data)
+        number_expected_results = len(data)
 
         results = []
         while True:

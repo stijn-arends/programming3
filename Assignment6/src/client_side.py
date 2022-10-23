@@ -19,6 +19,7 @@ class ClientSide:
     """
 
     def __init__(self, ip_adress: str, port: int, auth_key: str, poison_pill: str) -> None:
+        """Initializer"""
         self.ip_adress = ip_adress
         self.port = port
         self.auth_key = auth_key
@@ -107,8 +108,8 @@ class ClientSide:
                     print("Aaaaaaargh", my_name)
                     return
                 try:
-                    result = job['func_name'](job['arg'], job['arg2'])
-                    print(f"Peon {my_name} works on {job['arg']}!")
+                    result = job['func_name'](*job['args'])
+                    print(f"Peon {my_name} works on {job['args'][0]}!")
                     result_q.put({'job': job, 'result' : result})
                 except NameError:
                     print("Can't find yer fun Bob!")
