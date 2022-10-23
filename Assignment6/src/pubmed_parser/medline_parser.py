@@ -8,6 +8,7 @@ Module to parse medline data.
 # import glob
 import re
 from typing import Any
+import ast
 
 class MedlineParser:
     """
@@ -80,6 +81,7 @@ class MedlineParser:
                 pmid = self.article["MedlineCitation"]['PMID']
             else:
                 pmid = self._search_pmid_article_list(self.article['PubmedData']['ArticleIdList'])
+                # pmid = ast.literal_eval(pmid)
         except (IndexError, KeyError):
             pmid = ""
         return pmid
@@ -101,7 +103,7 @@ class MedlineParser:
             PMID of an article.
         """
         pattern = re.compile(r"^\d+$")
-        matches = [str(s) for s in article_id_list if pattern.match(s)]
+        matches = [ast.literal_eval(str(s)) for s in article_id_list if pattern.match(s)]
         pmid = matches[0] if matches else "" # Grab the match if it found it
         return pmid
 
