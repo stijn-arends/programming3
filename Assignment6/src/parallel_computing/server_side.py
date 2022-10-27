@@ -5,6 +5,7 @@ This module contains code from the server side.
 from multiprocessing.managers import BaseManager
 import queue
 import time
+from typing import Callable
 
 
 __author__ = "Stijn Arends"
@@ -17,7 +18,7 @@ class ServerSide:
     Class that handles the server side.
     """
 
-    def __init__(self, ip_adress: str, port: int, auth_key: str, poison_pill: str) -> None:
+    def __init__(self, ip_adress: str, port: int, auth_key: bytes, poison_pill: str) -> None:
         """Initializer"""
         self.ip_adress = ip_adress
         self.port = port
@@ -50,7 +51,7 @@ class ServerSide:
         return manager
 
 
-    def run_server(self, func_name, data, *args) -> None: # data, out_dir
+    def run_server(self, func_name: Callable, data, *args) -> None: # data, out_dir
         """
         Put jobs in the jobs queue and check if the data is being processed
         by checking if the result queue is getting filled. Stop all the clients when
