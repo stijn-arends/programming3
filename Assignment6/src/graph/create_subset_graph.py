@@ -125,7 +125,6 @@ def create_pyspark_df(file_path: str):
     sc - SparkContext
     spark - SparkSession
     """
-
     conf = pyspark.SparkConf().setAll([('spark.executor.memory', '128g'),
                                 ('spark.master', 'local[16]'),
                                 ('spark.driver.memory', '128g')])

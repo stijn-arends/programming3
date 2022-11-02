@@ -143,6 +143,8 @@ def write_partitions_out(spark_df, partition_by: str, out_dir: str) -> None:
         Name of the column to use for partitioning
     out_dir - str
         Location of the output folder.
+
+    Source: https://stackoverflow.com/questions/53925954/pyspark-create-multiple-json-files-from-dataframe
     """
     if not partition_by in spark_df.columns:
         print(f"Could not find column: '{partition_by}' inside supplied dataframe.")
