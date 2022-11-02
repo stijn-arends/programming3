@@ -24,6 +24,7 @@ class ServerSide:
         self.port = port
         self.auth_key = auth_key
         self.poison_pill = poison_pill
+        self.results = None
 
     def make_server_manager(self) -> BaseManager:
         """
@@ -90,6 +91,7 @@ class ServerSide:
                 result = shared_result_q.get_nowait()
                 results.append(result)
                 print("Got result!", result)
+                print(f"Processed: {(len(results) / number_expected_results) * 100:.3f}%")
                 if len(results) == number_expected_results:
                     print("Got all results!")
                     break
@@ -103,4 +105,5 @@ class ServerSide:
         # realize the job queue is empty and exit in an orderly way.
         time.sleep(5)
         print("Aaaaaand we're done for the server!")
+        self.results = results
         manager.shutdown()
