@@ -1,3 +1,7 @@
+"""
+Module for creating networkx graph objects.
+"""
+
 import sys
 import time
 import argparse
@@ -5,6 +9,7 @@ from typing import Any
 from pathlib import Path
 import multiprocessing as mp
 import os
+import pickle
 
 import pandas as pd
 import numpy as np
@@ -13,8 +18,6 @@ import pyspark
 from pyspark import SparkContext
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StringType, ArrayType, DateType
-
-from pyspark.sql.functions import row_number, monotonically_increasing_id
 
 import pyspark.sql.functions as F
 
@@ -132,19 +135,23 @@ class ArgumentParser:
             sys.exit("\nIf server mode has been selected please also provide the "\
                 "path to the output folder using the -o, or --output-dir flags.")
 
-# def create_adj_list(x, max_size):
-#     """Create adjaceny list"""
-#     id = x[0]
-#     vals = [None for _ in range(max_size)]
-#     for i in range(len(x['ref_ids'])):
-#         vals[i] = x['ref_ids'][i]
-
-#     return (id, *vals)
-
 
 def create_pyspark_df(file_path):
-    """Create df"""
+    """
+    Create a pyspark dataframe from multiple json files.
 
+    :parameters
+    -----------
+    file_path - str
+        Directory containg json files used to create dataframe
+    
+    :returns
+    --------
+    df - pyspark DataFrame
+        A pyspark dataframe
+    sc - SparkContext
+    spark - SparkSession
+    """
     schema = StructType() \
         .add('pmid', StringType()) \
         .add('language', StringType()) \
@@ -166,23 +173,32 @@ def create_pyspark_df(file_path):
                                 ('spark.driver.memory', '128g')])
     sc = SparkContext(conf=conf)
     sc.getConf().getAll()
-    # sc = SparkContext('local[16]')
     spark = SparkSession(sc)
-    # df = spark.read.json(file)
     df = spark.read.option("multiline","true").schema(schema) \
         .json(file_path)
-        
-    df = df.withColumn('row_id',F.monotonically_increasing_id())
     return df, sc, spark
 
-def create_adj_list(data, max_refs, out_adjlist_file):
+def create_adj_list(data, max_refs, out_adjlist_file) -> None:
+    """
+    Create an adjacency list using pandas dataframe.
+    Where the first column contains the source and the rest
+    of the columns contain the targets.
+
+    :parameters
+    -----------
+    data - pd.DataFrame
+        Data frame containing parsed pubmed articles
+    max_refs - int
+        The maximum number of references out of all the articles.
+    out_adjlist_file - Path
+        Location of output file
+    """
     adjlist = pd.DataFrame(data['ref_ids'].values.tolist())
     adjlist.insert(0, 'pmid', data['pmid'].values)
 
     n_cols = len(adjlist.columns) 
     if not n_cols == max_refs + 1:
         to_add = (max_refs + 1) - n_cols
-        # print(f"To add: {to_add}")
         for i in range(to_add):
             extra_col = pd.Series([np.NaN for _ in range(len(adjlist))])
             adjlist[f'{n_cols + i + 1}'] = extra_col
@@ -192,14 +208,68 @@ def create_adj_list(data, max_refs, out_adjlist_file):
     adjlist.to_csv(out_adjlist_file, sep=' ', header=False, index=False, mode='a')
 
 
-def save_no_ref_nodes(data, out_node_list):
+def save_no_ref_nodes(data, out_node_list) -> None:
+    """
+    Append PMIDs(nodes) to a text file.
+
+    :parameters
+    -----------
+    data - pd.DataFrame
+        Data frame containing parsed pubmed articles
+    out_node_list - Path
+        Location of output file
+    """
     nodes = data.pmid.values
 
     with open(out_node_list, 'ab') as fh:
         np.savetxt(fh, nodes, fmt='%4.0f', newline=' ')
 
 
-def parse_graph_data(file, max_refs, out_adjlist_file, out_node_list):
+def get_attribute_info(df) -> dict:
+    """
+    Get the attributes info for each article(node) by
+    setting the PMID column as index and transforming the
+    resulting data frame to a dictionary.
+
+    :parameters
+    -----------
+    df - pd.DataFrame
+        Parsed pubmed articles
+
+    :returns
+    --------
+    attributes - dict
+        The article(node) attributes
+    """
+    attr_df = df.copy()
+    attr_df.drop_duplicates(subset=["pmid"], keep='last', inplace=True)
+    attributes = attr_df.set_index('pmid').to_dict('index')
+    return attributes
+
+
+def read_pickl(file) -> Any:
+    """
+    Read in a pickle file.
+    """
+    with open(file, 'rb') as fh:
+        data = pickle.load(fh)
+
+    return data
+
+def write_to_pickl(data, file) -> None:
+    """
+    Write a python object to a pickle file.
+    """
+    with open(file, 'wb') as fh:
+        pickle.dump(data, fh)
+
+def parse_graph_data(file, max_refs, out_adjlist_file, out_node_list, out_attr_dir) -> None:
+    """
+    Parse the article data to create data that can be used to create
+    graphs; adjenceny list, attributes info, and list of nodes with no references(
+    or edges).
+
+    """
     df = pd.read_json(file)
 
     ref_ids = df[df.ref_type == "pmid"]
@@ -211,6 +281,9 @@ def parse_graph_data(file, max_refs, out_adjlist_file, out_node_list):
  
     if not len(no_refs) == 0:
         save_no_ref_nodes(no_refs, out_node_list)
+
+    attributes_data = get_attribute_info(df)
+    write_to_pickl(attributes_data, out_attr_dir / (file.stem + ".pkl"))
 
 
 def make_output_dir(path: Path) -> None:
@@ -232,6 +305,20 @@ def make_output_dir(path: Path) -> None:
         path.mkdir(parents=True, exist_ok=False)
     except FileExistsError:
         print(f"[{make_output_dir.__name__}] {path} already exists.")
+
+
+def combine_attribute_files(attributes_path):
+    files = list(attributes_path.glob("*.pkl"))
+
+    all_attributes = {}
+    # Parse all files:
+    for file in files:
+        print(f"Parsing: {file}")
+        data = read_pickl(file)
+        all_attributes.update(data)
+        os.remove(file)
+    return all_attributes
+
 
 def main():
     """
@@ -271,9 +358,12 @@ def main():
     output_dir = cla_parser.get_argument('o')
     if output_dir:
         output_dir = Path(output_dir)
+        output_attr = output_dir / "attribute_data/partitions_data/"
         make_output_dir(output_dir)
+        make_output_dir(output_attr)
         out_adjlist_file = output_dir / "adjlist_articles.csv"
         out_node_list = output_dir / "nodes_no_refs.txt"
+        out_attr_file = output_dir / "attribute_data/all_attributes.pkl"
 
     n_peons = cla_parser.get_argument('n')
     port = cla_parser.get_argument('p')
@@ -281,17 +371,14 @@ def main():
 
     server_mode = cla_parser.get_argument('s')
     client_mode = cla_parser.get_argument('c')
-    # json_dir = "/commons/dsls/dsph/2022/test/"
-    # json_files = json_dir + "*.json"
 
     if server_mode:
-        # out_dir = Path("/commons/dsls/dsph/2022/test")
-        # out_dir.mkdir(exist_ok=True)
         server_side = ServerSide(ip_adress=host, port=port,
             auth_key=b'whathasitgotinitspocketsesss?',
             poison_pill="MEMENTOMORI")
         server = mp.Process(target=server_side.run_server, args=(parse_graph_data,
-            data_files, max_size_full, out_adjlist_file, out_node_list)) # [:2]
+            data_files, max_size_full, out_adjlist_file, out_node_list,
+            output_attr)) # [:2]
         server.start()
         time.sleep(1)
         server.join()
@@ -305,6 +392,11 @@ def main():
         client.start()
         client.join()
 
+    if not client_mode:
+        all_attributes = combine_attribute_files(output_attr)
+        print(len(all_attributes))
+        write_to_pickl(all_attributes, out_attr_file)
+
     elapsed_time = time.time() - start_time
     days = 0
     if elapsed_time >= 86400:
@@ -312,6 +404,8 @@ def main():
     elapsed = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
     print(f"\n---- Time: {days}:{elapsed} ----")
 
+
+# python create_adjaceny_list.py -d /commons/dsls/dsph/2022/final_parsed_articles/ --host assemblix2012 -p 4235 -s -o /commons/dsls/dsph/2022/graph_data/
 
 if __name__ == "__main__":
     main()
