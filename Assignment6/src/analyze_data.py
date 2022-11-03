@@ -57,7 +57,7 @@ class AnalyzeData:
         .add('ref_type', StringType())
     
 
-    def __init__(self, file_path) -> None:
+    def __init__(self, file_path: str) -> None:
         self.file_path = file_path
         self.spark_df, self.sc, self.spark = self.read_spark_df_json(file_path, self.schema)
 
@@ -75,20 +75,20 @@ class AnalyzeData:
 
         :returns
         --------
-        df - pyspark DataFrame
+        spark_df - pyspark DataFrame
             A pyspark dataframe
-        sc - SparkContext
+        spark_context - SparkContext
         spark - SparkSession
         """
         conf = pyspark.SparkConf().setAll([('spark.executor.memory', '128g'),
                                     ('spark.master', 'local[16]'),
                                     ('spark.driver.memory', '128g')])
-        sc = SparkContext(conf=conf)
-        sc.getConf().getAll()
-        spark = SparkSession(sc)
-        df = spark.read.option("multiline","true").schema(schema) \
+        spark_context = SparkContext(conf=conf)
+        spark_context.getConf().getAll()
+        spark = SparkSession(spark_context)
+        spark_df = spark.read.option("multiline","true").schema(schema) \
             .json(file_path)
-        return df, sc, spark
+        return spark_df, spark_context, spark
 
     def avg_co_authors(self) -> float:
         """
@@ -105,6 +105,9 @@ class AnalyzeData:
 
 
 class AnalyzeGraph:
+    """
+    Add doc string
+    """
 
     def __init__(self, graph) -> None:
         self.graph = graph
@@ -307,7 +310,205 @@ class AnalyzeGraph:
         print(f"Mean overlap: {avg_overlap:.3}%")
         return overlap_percentages, highest_perc_overlap, avg_overlap
 
+    def distinguish_citations(self, threshold:float = 1) -> Tuple[ArrayLike, ArrayLike]:
+        """
+        Distinguish what are highly and lowly cited papers.
 
+        :parameters
+        -----------
+        threshold - float
+            The threshold to decide what is high and what is low,
+            default = 1
+
+        :returns
+        --------
+        highly_cited - ArrayLike
+            highly cited articles
+        lowly_cited - ArrayLike
+            lowly cited articles
+        """
+        in_degrees = np.array(list(dict(self.graph.in_degree).values()))
+        articles = np.array(list(dict(self.graph.in_degree).keys()))
+
+        highly_cited = articles[np.where(in_degrees >= threshold)[0]]
+        lowly_cited = articles[np.where(in_degrees < threshold)[0]]
+        return highly_cited, lowly_cited
+
+
+    def get_time_span(self, articles: ArrayLike) -> list:
+        """
+        Get the time span of reference for a list of articles.
+
+        :parameters
+        -----------
+        articles - ArrayLike
+            Array of articles (nodes)
+
+        :returns
+        --------
+        time_span - list
+            Time span of being referenced for each article
+        """
+        time_span = []
+
+        for article in articles:
+            all_years = []
+            in_edges = self.graph.in_edges(article, data=True)
+            if in_edges:
+                for ref, _, _ in in_edges:
+                    year = self.graph.nodes[ref]['publish_date'].year
+                    all_years.append(year)
+                
+                span = np.max(all_years) - np.min(all_years)
+                time_span.append(span)
+        return time_span
+
+    @staticmethod
+    def find_intersect_out_neighbours(graph: nx.DiGraph, node: str, attribute: str,
+            total: int, intersect: int) -> Tuple[int, int]:
+        """
+        Find if there are similarities for the specified attributes between the source node and
+        the out going neighbours (i.e. articles that have been cited by the source paper).
+
+        :parameters
+        -----------
+        graph - nx.DiGraph
+            A citation network
+        node - str
+            Name of node
+        attribute - str
+            Name of node attribute
+        total - int
+            Total number of articles parsed
+        intersect - int
+            Total number of intersect found
+        """
+        attribute_source = graph.nodes[node][attribute]
+        for out_neighbor in graph.neighbors(node):
+            attribute_ref = graph.nodes[out_neighbor][attribute]
+            if not attribute_ref:
+                continue
+            total += 1
+            # print(key_words_out_neigh)
+            if list(set(attribute_source) & set(attribute_ref)):
+                intersect += 1
+        return total, intersect
+
+    @staticmethod
+    def find_intersect_in_neighbours(graph: nx.DiGraph, node: str, attribute: str,
+            total: int, intersect: int) -> Tuple[int, int]:
+        """
+        Find if there are similarities for the specified attributes between the source node and
+        the in going neighbours (i.e. articles that have cited the source paper).
+
+        :parameters
+        -----------
+        graph - nx.DiGraph
+            A citation network
+        node - str
+            Name of node
+        attribute - str
+            Name of node attribute
+        total - int
+            Total number of articles parsed
+        intersect - int
+            Total number of intersect found
+        """
+        attribute_source = graph.nodes[node][attribute]
+        for ref, _, _ in graph.in_edges(node, data=True):
+            attribute_ref = graph.nodes[ref][attribute]
+            if not attribute_ref:
+                continue
+
+            total += 1
+            if list(set(attribute_source) & set(attribute_ref)):
+                intersect += 1
+        return total, intersect
+
+    def find_corr_citation_key_words(self, nodes: ArrayLike) -> list[float]:
+        """
+        Find if there is a correlation between the citations and the number of key words that paper share.
+        I.e. papers which share the same subject cite each other more often.
+
+        :parameters
+        -----------
+        nodes - ArrayLike
+            An array of nodes
+
+        :returns
+        --------
+        correlation_citaion_key_words - list
+            The correlation between citations and number of key words
+            for each article (node)
+        """
+        if isinstance(nodes, str):
+            nodes = [nodes]
+
+        correlation_citation_key_words = []
+        for node in nodes:
+            out_degree = self.graph.out_degree(node)
+            in_degree = self.graph.in_degree(node)
+
+            # If there are no references skip
+            if out_degree == 0 and in_degree == 0:
+                continue
+
+            # If there are no key words skip
+            key_words = self.graph.nodes[node]['key_words']
+            if not key_words:
+                continue
+            total = 0
+            intersect = 0
+
+            # Check if the outgoing neighbours share similar key words
+            if out_degree != 0:
+                # print('neighbors:')
+                total, intersect = self.find_intersect_out_neighbours(self.graph, node, 'key_words', total, intersect)
+
+            # Check if ingoing neighbours share similar key words
+            if in_degree != 0:
+                total, intersect = self.find_intersect_in_neighbours(self.graph, node, 'key_words', total, intersect)
+            if total != 0:
+                correlation = intersect / total
+                correlation_citation_key_words.append(correlation)
+        return correlation_citation_key_words
+
+    def calcualte_h_index(self) -> Tuple[list, int]:
+        """
+        Calculate the h-index for each author and return the name of
+        the author(s) that got the highest h-index.
+
+        The h-index is a measure of the number of publications published (productivity),
+        as well as how often they are cited.
+
+        h-index = the number of publications with a citation number greater than or equal to h.
+
+        For example:
+            * 15 publications cited 15 times or more, is a h-index of 15.
+
+        :returns
+        --------
+        authors - list
+            List of author(s) with the highest h-index
+        max_h_index - int
+            The highest h-index
+        """
+        author_citations = {"author": [], 'citations': []}
+
+        for article, author in self.all_authors.items():
+            in_degree = self.graph.in_degree(article)
+            author_citations["author"].append(author)
+            author_citations['citations'].append(in_degree)
+
+        author_citations_df = pd.DataFrame(author_citations)
+        author_citations_df['h-index'] = author_citations_df.groupby('author')['citations']\
+            .transform( lambda x: (x >= x.count()).sum())
+
+        max_h_index = author_citations_df['h-index'].max()
+        max_h_index_df = author_citations_df[author_citations_df['h-index'] == max_h_index]
+
+        authors = max_h_index_df.author.unique().tolist()
+        return authors, max_h_index
 
 
 def main():
@@ -316,14 +517,48 @@ def main():
     json_files = json_dir + "*.json"
     subset_graph = "/commons/dsls/dsph/2022/graph_data/citation_subgraph_3.pkl"
 
+    analyze_data = AnalyzeData(json_files)
 
-    # analyze_data = AnalyzeData(json_files)
+    # Q1
+    avg_co_authors = analyze_data.avg_co_authors()
+    print(f"Average co authors: {avg_co_authors}")
 
     graph = read_pickl(subset_graph)
     analyze_graph = AnalyzeGraph(graph)
-    print(analyze_graph.most_cited_paper())
-    analyze_graph.author_similar_co_authors()
-    analyze_graph.author_similar_authors_refs()
+    most_cited_paper, max_citation, in_degrees_sorted = analyze_graph.most_cited_paper(additional_info=True)
+    print(f"Most cited paper: {most_cited_paper}")
+    # Q2
+    relation_auth_co_auths, avg_relation_co_auths = analyze_graph.author_similar_co_authors()
+    # Q3
+    overlap_percentages, highest_perc, avg_overlap = analyze_graph.author_similar_authors_refs()
+    # Q4
+    highly_cited, lowly_cited = analyze_graph.distinguish_citations(threshold=5)
+    # Save this
+    highly_cited_time_span = analyze_graph.get_time_span(highly_cited)
+    avg_time_span_high = np.mean(highly_cited_time_span)
+    print(f"Average time span highly cited papers: {avg_time_span_high:.4f} years")
+
+    # Save this
+    lowly_cited_time_span = analyze_graph.get_time_span(lowly_cited)
+    avg_time_span_low = np.mean(lowly_cited_time_span)
+    print(f"Average time span lowly cited papers: {avg_time_span_low:.4f} years")
+
+    # Save this:
+    time_span_highest = [graph.nodes[ref]['publish_date'].year for ref, _, _ in graph.in_edges(most_cited_paper, data=True)]
+
+    # Q5
+    correlation_citation_key_words = analyze_graph.find_corr_citation_key_words(graph.nodes())
+    print(f"Mean corr: {np.mean(correlation_citation_key_words):.3f}")
+    print(f"Number of acceptable articles: {len(correlation_citation_key_words)}")
+
+    # Q6
+    corr_citation_key_words_highly_cited = analyze_graph.find_corr_citation_key_words(highly_cited)
+    print(f"Mean corr: {np.mean(corr_citation_key_words_highly_cited):.3f}")
+
+    # Q7: h index
+    authors, max_h_index = analyze_graph.calcualte_h_index()
+    print(f"Author(s) with highest h-index: {authors} - {max_h_index}")
+
 
 if __name__ == "__main__":
     main()
