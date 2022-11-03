@@ -195,6 +195,120 @@ class AnalyzeGraph:
 
         return author_co_authors
 
+    def author_similar_authors_refs(self) -> Tuple[list, dict, float]:
+        """
+        Find out if authors mainly reference papers with other authors with whom
+        they've co-authored papers (including themselves).
+
+        :returns
+        --------
+        overlap_percentages - list
+            List of overlapping percentages
+        highest_perc_overlap - dict
+            Author with the highest % overlap
+        avg_overlap - float
+            The average % overlap
+        """
+        author_co_authors_flat = self._get_author_co_authors_flat()
+        authors_with_ref = self.get_authors_with_ref()
+
+        author_co_auth_refs = {author:{'total': 0, 'yes': 0} for author in authors_with_ref.values()}
+
+        for node, author in authors_with_ref.items():
+            out_degree = self.graph.out_degree(node)
+            co_auths = author_co_authors_flat[author]
+
+            if out_degree != 0:
+                for neighbour in self.graph.neighbors(node):
+                    co_auths_refs = self.graph.nodes[neighbour]['co_authors']
+                    co_auths_refs.insert(0, self.graph.nodes[neighbour]['author'])
+                    author_co_auth_refs[author]['total'] += 1
+                    if list(set(co_auths_refs) & set(co_auths)):
+                        author_co_auth_refs[author]['yes'] += 1
+
+                        
+        overlap_percentages, highest_perc, avg_overlap = self._get_overlap_percentages(author_co_auth_refs)
+        return overlap_percentages, highest_perc, avg_overlap
+
+    def _get_author_co_authors_flat(self) -> dict[list]:
+        """
+        Get all the co authors of all the articles for each other.
+        Store these in one lists.
+
+        :returns
+        --------
+        author_co_authors_flat - dict
+            authors and there co authors for each of their publications
+        """
+        author_co_authors_flat = {}
+
+        for pmid, author in self.all_authors.items():
+            co_authors = self.graph.nodes[pmid]['co_authors']
+            if author not in author_co_authors_flat:
+                author_co_authors_flat[author] = co_authors
+                author_co_authors_flat[author].insert(0, author)
+            else:
+                author_co_authors_flat[author].extend(co_authors)
+                author_co_authors_flat[author].insert(0, author)
+
+        return author_co_authors_flat
+
+    def get_authors_with_ref(self) -> dict[str]:
+        """
+        Get the authors and articles that have references.
+
+        :returns
+        --------
+        authors_with_ref - dict
+            PMID and author name of articles that contain references
+        """
+        authors_with_ref = {}
+        for article, author in self.all_authors.items():
+            out_degr = self.graph.out_degree(article)
+            if out_degr != 0:
+                authors_with_ref[article] = author
+
+        return authors_with_ref
+
+    @staticmethod
+    def _get_overlap_percentages(author_co_auth_refs) -> Tuple[list, dict, float]:
+        """
+        Get the percentage of overlapping authors/co-authors from references.
+
+        :parameters
+        -----------
+        author_co_auth_refs - dict
+            dict of authors with stats on the number of articles they have
+            and the number of times those articles had author/co-authors
+            that they often work with
+
+        :returns
+        --------
+        overlap_percentages - list
+            List of overlapping percentages
+        highest_perc_overlap - dict
+            Author with the highest % overlap
+        avg_overlap - float
+            The average % overlap
+        """
+        highest_perc_overlap = {'author': None, 'overlap': 0, 'total': 0}
+
+        overlap_percentages = []
+
+        for author, stats in author_co_auth_refs.items():
+            overlap = (stats['yes'] / stats['total']) * 100
+            overlap_percentages.append(overlap)
+            if overlap > highest_perc_overlap['overlap']:
+                highest_perc_overlap['overlap'] = overlap
+                highest_perc_overlap['author'] = author
+                highest_perc_overlap['total'] = stats['total']
+
+        avg_overlap = np.mean(overlap_percentages)
+        print(f"Mean overlap: {avg_overlap:.3}%")
+        return overlap_percentages, highest_perc_overlap, avg_overlap
+
+
+
 
 def main():
     """main"""
@@ -209,6 +323,7 @@ def main():
     analyze_graph = AnalyzeGraph(graph)
     print(analyze_graph.most_cited_paper())
     analyze_graph.author_similar_co_authors()
+    analyze_graph.author_similar_authors_refs()
 
 if __name__ == "__main__":
     main()
