@@ -473,6 +473,45 @@ class AnalyzeGraph:
                 correlation_citation_key_words.append(correlation)
         return correlation_citation_key_words
 
+    def get_author_citations(self) -> dict:
+        """
+        Get for each article the name of the author and the number
+        of citations it has.
+
+        :returns
+        --------
+        author_citations - dict
+            Author name and number of citations it got for an article.
+        """
+        author_citations = {"author": [], 'citations': []}
+
+        for article, author in self.all_authors.items():
+            in_degree = self.graph.in_degree(article)
+            if author != '':
+                author_citations["author"].append(author)
+                author_citations['citations'].append(in_degree)
+
+        author_citations_df = pd.DataFrame(author_citations)
+        return author_citations_df
+
+    def most_cited_author(self) -> Tuple[str, int]:
+        """
+        Get the name of the most cited author as well as the number of
+        citations that they got.
+
+        :returns
+        --------
+        author - str
+            Name of the most cited author
+        max_n_citations - int
+            Number of citations that author got
+        """
+        author_citations_df = self.get_author_citations()
+        grouped_author_citation = author_citations_df.groupby('author').agg({'citations':'sum'})
+        max_n_citations = grouped_author_citation.citations.max() 
+        most_cited_author = grouped_author_citation[grouped_author_citation['citations'] == max_n_citations]
+        return most_cited_author.index[0], max_n_citations
+
     def calcualte_h_index(self) -> Tuple[list, int]:
         """
         Calculate the h-index for each author and return the name of
@@ -493,14 +532,7 @@ class AnalyzeGraph:
         max_h_index - int
             The highest h-index
         """
-        author_citations = {"author": [], 'citations': []}
-
-        for article, author in self.all_authors.items():
-            in_degree = self.graph.in_degree(article)
-            author_citations["author"].append(author)
-            author_citations['citations'].append(in_degree)
-
-        author_citations_df = pd.DataFrame(author_citations)
+        author_citations_df = self.get_author_citations()
         author_citations_df['h-index'] = author_citations_df.groupby('author')['citations']\
             .transform( lambda x: (x >= x.count()).sum())
 
@@ -525,7 +557,7 @@ def main():
 
     graph = read_pickl(subset_graph)
     analyze_graph = AnalyzeGraph(graph)
-    most_cited_paper, max_citation, in_degrees_sorted = analyze_graph.most_cited_paper(additional_info=True)
+    most_cited_paper, max_citation_paper, in_degrees_sorted = analyze_graph.most_cited_paper(additional_info=True)
     print(f"Most cited paper: {most_cited_paper}")
     # Q2
     relation_auth_co_auths, avg_relation_co_auths = analyze_graph.author_similar_co_authors()
@@ -544,7 +576,8 @@ def main():
     print(f"Average time span lowly cited papers: {avg_time_span_low:.4f} years")
 
     # Save this:
-    time_span_highest = [graph.nodes[ref]['publish_date'].year for ref, _, _ in graph.in_edges(most_cited_paper, data=True)]
+    time_span_highest = [graph.nodes[ref]['publish_date'].year \
+        for ref, _, _ in graph.in_edges(most_cited_paper, data=True)]
 
     # Q5
     correlation_citation_key_words = analyze_graph.find_corr_citation_key_words(graph.nodes())
@@ -558,6 +591,10 @@ def main():
     # Q7: h index
     authors, max_h_index = analyze_graph.calcualte_h_index()
     print(f"Author(s) with highest h-index: {authors} - {max_h_index}")
+
+    # Q8: most cited author
+    most_cited_author, max_citation_author = analyze_graph.most_cited_author()
+    print(f'Most cited author: {most_cited_author}')
 
 
 if __name__ == "__main__":
