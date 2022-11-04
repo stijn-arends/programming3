@@ -9,10 +9,11 @@ __version__ = 'v.01'
 import pickle
 from itertools import combinations
 from typing import Any, Tuple
+from pathlib import Path
 import numpy as np
 from numpy.typing import ArrayLike
 import networkx as nx
-import matplotlib.pyplot as plt
+
 import pandas as pd
 # from fuzzywuzzy import fuzz
 
@@ -141,7 +142,7 @@ class AnalyzeGraph:
         if not additional_info:
             return most_cited_paper
 
-        in_degrees_sorted = np.argsort(in_degrees)[::-1]
+        in_degrees_sorted = in_degrees[np.argsort(in_degrees)[::-1]]
         return most_cited_paper, max_citation, in_degrees_sorted
 
     def author_similar_co_authors(self) -> Tuple[dict, float]:
@@ -252,7 +253,7 @@ class AnalyzeGraph:
                 author_co_authors_flat[author].insert(0, author)
             else:
                 author_co_authors_flat[author].extend(co_authors)
-                author_co_authors_flat[author].insert(0, author)
+                # author_co_authors_flat[author].insert(0, author)
 
         return author_co_authors_flat
 
@@ -542,12 +543,32 @@ class AnalyzeGraph:
         authors = max_h_index_df.author.unique().tolist()
         return authors, max_h_index
 
+def make_data_dir(path: Path) -> None:
+    """
+    Create a directory (if it does not exsit yet) to store the
+    data.
+
+    :Excepts
+    --------
+    FileExistsError
+        The directory already exists
+    """
+    try:
+        path.mkdir(parents=True, exist_ok=False)
+    except FileExistsError:
+        print(f"[{make_data_dir.__name__}] {path} already exists.")
+
 
 def main():
     """main"""
     json_dir = "/commons/dsls/dsph/2022/final_parsed_articles/"
     json_files = json_dir + "*.json"
     subset_graph = "/commons/dsls/dsph/2022/graph_data/citation_subgraph_3.pkl"
+
+    out_path = Path(__file__).parent.parent.absolute()
+    result_files = out_path / 'result_files'
+    make_data_dir(result_files)
+    print(f"Output path: {out_path}") 
 
     analyze_data = AnalyzeData(json_files)
 
@@ -558,34 +579,45 @@ def main():
     graph = read_pickl(subset_graph)
     analyze_graph = AnalyzeGraph(graph)
     most_cited_paper, max_citation_paper, in_degrees_sorted = analyze_graph.most_cited_paper(additional_info=True)
+
+    threshold = np.percentile(in_degrees_sorted, 99.5)
+    print(f"Threshold: {threshold}")
+
     print(f"Most cited paper: {most_cited_paper}")
     # Q2
     relation_auth_co_auths, avg_relation_co_auths = analyze_graph.author_similar_co_authors()
     # Q3
     overlap_percentages, highest_perc, avg_overlap = analyze_graph.author_similar_authors_refs()
     # Q4
-    highly_cited, lowly_cited = analyze_graph.distinguish_citations(threshold=5)
+    highly_cited, lowly_cited = analyze_graph.distinguish_citations(threshold=threshold)
     # Save this
     highly_cited_time_span = analyze_graph.get_time_span(highly_cited)
+    np.save(result_files / 'highly_cited_time_span.npy', highly_cited_time_span)
+
     avg_time_span_high = np.mean(highly_cited_time_span)
     print(f"Average time span highly cited papers: {avg_time_span_high:.4f} years")
 
     # Save this
     lowly_cited_time_span = analyze_graph.get_time_span(lowly_cited)
+    np.save(result_files / 'lowly_cited_time_span.npy', lowly_cited_time_span)
     avg_time_span_low = np.mean(lowly_cited_time_span)
     print(f"Average time span lowly cited papers: {avg_time_span_low:.4f} years")
 
     # Save this:
     time_span_highest = [graph.nodes[ref]['publish_date'].year \
         for ref, _, _ in graph.in_edges(most_cited_paper, data=True)]
+    np.save(result_files / 'time_span_most_cited_paper.npy', time_span_highest)
+    
 
     # Q5
     correlation_citation_key_words = analyze_graph.find_corr_citation_key_words(graph.nodes())
-    print(f"Mean corr: {np.mean(correlation_citation_key_words):.3f}")
+    avg_corr_citation_key_words = np.mean(correlation_citation_key_words)
+    print(f"Mean corr: {avg_corr_citation_key_words:.3f}")
     print(f"Number of acceptable articles: {len(correlation_citation_key_words)}")
 
     # Q6
     corr_citation_key_words_highly_cited = analyze_graph.find_corr_citation_key_words(highly_cited)
+    avg_corr_citation_key_words_high = np.mean(corr_citation_key_words_highly_cited)
     print(f"Mean corr: {np.mean(corr_citation_key_words_highly_cited):.3f}")
 
     # Q7: h index
@@ -595,6 +627,33 @@ def main():
     # Q8: most cited author
     most_cited_author, max_citation_author = analyze_graph.most_cited_author()
     print(f'Most cited author: {most_cited_author}')
+
+    questions = ["How large a group of co-authors does the average publication have?",
+                "Do authors mostly publish using always the same group of authors?",
+                "Do authors mainly reference papers with other authors with whom they've " \
+                    "co-authored papers (including themselves)?",
+                "What is the distribution in time for citations of papers in general, and "\
+                    "for papers with the highest number of citations? Do they differ?",
+                "Is there a correlation between citations and the number of keywords that "\
+                    "papers share? I.e. papers which share the same subject cite each other more often.",
+                "For the most-cited papers (define your own cutoff), is the correlation in "\
+                    "shared keywords between them and the papers that cite them different from (5) ?",
+                "What is the most cited paper?", "Who is the most cited author?",
+                "Which author(s) has/have the highest h-inex?"]
+
+    most_cited_paper_info = {'PMID': most_cited_paper, 'author': graph.nodes[most_cited_paper]['author'],
+                'citations': max_citation_paper, 'title': graph.nodes[most_cited_paper]['title']}
+
+    most_cited_author_info = {'author': most_cited_author, 'citations': max_citation_author}
+
+    answers = [avg_co_authors, f"{np.round(avg_relation_co_auths, 3)}%", f"{np.round(avg_overlap, 3)}%",
+            {'general': f"{np.round(avg_time_span_low, 4)} years", 'high': f"{np.round(avg_time_span_high, 2)} years"},
+            np.round(avg_corr_citation_key_words, 3), np.round(avg_corr_citation_key_words_high, 3),
+            most_cited_paper_info, most_cited_author_info, {'authors': authors, 'h-index': max_h_index}]
+
+    questions_answers = pd.DataFrame({'Question': questions, 'Asnwer': answers})
+    questions_answers.to_csv(out_path / 'questions_answers.csv', sep=',', header=True)
+
 
 
 if __name__ == "__main__":
