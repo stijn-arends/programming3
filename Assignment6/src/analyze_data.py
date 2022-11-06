@@ -543,6 +543,36 @@ class AnalyzeGraph:
         authors = max_h_index_df.author.unique().tolist()
         return authors, max_h_index
 
+    def find_relation_language_references(self) -> Tuple[list, float]:
+        """
+        Find how often papers reference other papers that were written in
+        the same language.
+
+        :returns
+        --------
+        overlap_languages - list
+            The amount of references that were written using the same
+            language depicted in %.
+        avg_overlap_languages - float
+            The average percentage
+        """
+        overlap_languages = []
+        
+        for node in self.graph.nodes():
+            out_degr = self.graph.out_degree(node)
+            language_source = self.graph.nodes[node]['language']
+            total, intersect = 0, 0
+            if out_degr != 0:
+                for neighbor in self.graph.neighbors(node):
+                    total += 1
+                    language_neighbor = self.graph.nodes[neighbor]['language']
+                    if language_source == language_neighbor:
+                        intersect += 1
+        
+                overlap = (intersect / total) * 100
+                overlap_languages.append(overlap)
+        return overlap_languages, np.mean(overlap_languages)
+
 def make_data_dir(path: Path) -> None:
     """
     Create a directory (if it does not exsit yet) to store the
@@ -628,6 +658,10 @@ def main():
     most_cited_author, max_citation_author = analyze_graph.most_cited_author()
     print(f'Most cited author: {most_cited_author}')
 
+    # Q9: Do papers mostly reference other papers from the same language?
+    overlap_languages, avg_overlap_languages = analyze_graph.find_relation_language_references()
+
+
     questions = ["How large a group of co-authors does the average publication have?",
                 "Do authors mostly publish using always the same group of authors?",
                 "Do authors mainly reference papers with other authors with whom they've " \
@@ -638,6 +672,7 @@ def main():
                     "papers share? I.e. papers which share the same subject cite each other more often.",
                 "For the most-cited papers (define your own cutoff), is the correlation in "\
                     "shared keywords between them and the papers that cite them different from (5) ?",
+                "Do papers mostly reference other papers that were written in the same language?",
                 "What is the most cited paper?", "Who is the most cited author?",
                 "Which author(s) has/have the highest h-inex?"]
 
@@ -649,6 +684,7 @@ def main():
     answers = [avg_co_authors, f"{np.round(avg_relation_co_auths, 3)}%", f"{np.round(avg_overlap, 3)}%",
             {'general': f"{np.round(avg_time_span_low, 4)} years", 'high': f"{np.round(avg_time_span_high, 2)} years"},
             np.round(avg_corr_citation_key_words, 3), np.round(avg_corr_citation_key_words_high, 3),
+            f"{avg_overlap_languages:.3}%",
             most_cited_paper_info, most_cited_author_info, {'authors': authors, 'h-index': max_h_index}]
 
     questions_answers = pd.DataFrame({'Question': questions, 'Asnwer': answers})
