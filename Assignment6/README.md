@@ -6,31 +6,23 @@
 <div align="center">
 <h1 align="center">Assignment 6</h1>
 <h2 align="center">Investigation of the scientific literature</h2>
-  <!-- <a href="https://www.molgenis.org/">
-    <img src="figures/PubMed-Logo.png" alt="Logo" width="100" height="100">
+  <a href="https://pubmed.ncbi.nlm.nih.gov/">
+    <img src="figures/PubMed-Logo.png" alt="Logo" width="30%" height="90">
   </a>
-  <a>
-    <img src="figures/Apache_Spark_logo.png" alt="spark" width="100" height="100" align='right'>
+  <a href="https://spark.apache.org/docs/latest/api/python/index.html">
+    <img src="figures/Apache_Spark_logo.png" alt="spark" width="30%" height="90" align='right'>
   </a>
-   <a>
-    <img src="figures/networkx_logo.svg" alt="spark" width="100" height="100" align='left'>
-  </a> -->
+   <a href="https://networkx.org/">
+    <img src="figures/networkx_logo.svg" alt="spark" width="30%" height="90" align='left'>
+  </a>
 </div>
-<div class="row">
-  <div class="column" style='float:left;width:33.33%;padding:5px'>
-    <img src="figures/networkx_logo.svg" alt="pubmed" style="width:100%">
-  </div>
-  <div class="column" style='float:left;width:33.33%;padding:5px'>
-    <img src="figures/PubMed-Logo.png" alt="Forest" style="width:100%">
-  </div>
-  <div class="column" style='float:left;width:33.33%;padding:5px'>
-    <img src="figures/Apache_Spark_logo.png" alt="Mountains" style="width:100%">
-  </div>
-</div>
+<br>
 
-# Assignment 6
+* * *
+# About this project
+Tell something about this project
 
-
+* * *
 ## Getting Started
 
 Server:
@@ -42,6 +34,27 @@ Client:
 ```bash
 python src/main.py -p 4235 --host assemblix2019 -c -n 2
 ```
+
+* * *
+## Results
+
+![graph_author](figures/common_authors_graph.png)
+
+* * *
+## Installation
+
+
+* * *
+## Requirements
+
+* * *
+## Author
+
+Stijn Arends - contact me via [mail](mailto:s.arends@st.hanze.nl).
+
+* * *
+## License
+This project contains an [MIT license](../LICENSE)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
