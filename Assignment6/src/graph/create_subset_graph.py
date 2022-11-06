@@ -214,12 +214,10 @@ def main():
     data_dir = cla_parser.get_argument('d')
     n_samples = cla_parser.get_argument('n')
     out_dir = Path(cla_parser.get_argument('o'))
-    out_adjlist = out_dir / "adjlist_random_sample.csv"
-    out_graph = out_dir / "citation_subgraph.pkl"
+    out_adjlist = out_dir / "adjlist_subset_data_4.csv"
+    out_graph = out_dir / "citation_subgraph_4.pkl"
+    out_attributes = out_dir / "attributes_subgraph_4.pkl"
 
-
-    # json_dir = "/commons/dsls/dsph/2022/final_parsed_articles/"
-    # json_files = json_dir + "*.json"
     json_files = data_dir + "*.json"
 
     print("Reading data:\n")
@@ -229,7 +227,7 @@ def main():
     pmid_refs = spark_df.filter(spark_df.ref_type == "pmid")
 
     # Take a random sample from the dataframe
-    random_df = spark.createDataFrame(pmid_refs.rdd.takeSample(False, n_samples, seed=0), schema=SCHEMA)
+    random_df = spark.createDataFrame(pmid_refs.rdd.takeSample(False, n_samples), schema=SCHEMA)
 
     # Calculate the max number of references
     max_size_random = random_df.select(F.size('ref_ids')).agg({'size(ref_ids)': 'max'}).take(1)[0][0]
@@ -246,16 +244,14 @@ def main():
     # Create a dictionary of node attributes
     node_attributes = articles_interest_pd.set_index('pmid').to_dict('index')
 
-    # out_adjlist = "/commons/dsls/dsph/2022/graph_data/adjlist_random_sample.csv"
-
     # Write out adjacency list and read it in again to create a graph
     adjlist_random_pd.to_csv(out_adjlist, sep=' ', header=False, index=False)
 
     graph = nx.read_adjlist(out_adjlist, create_using=nx.DiGraph()) 
 
     nx.set_node_attributes(graph, node_attributes)
-    # out_subset_graph = "/commons/dsls/dsph/2022/graph_data/graph_random_sample.pkl"
     to_pickle(graph, out_graph)
+    to_pickle(node_attributes, out_attributes)
 
     elapsed_time = time.time() - start_time
     days = 0
