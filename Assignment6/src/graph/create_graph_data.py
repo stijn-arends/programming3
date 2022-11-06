@@ -330,14 +330,12 @@ def main():
 
     start_time = time.time()
     cla_parser = ArgumentParser()
-    # cla_validator = CLIArgValidator()
     data_dir = cla_parser.get_argument('d')
 
     if data_dir:
         json_files = data_dir + "*.json"
         data_dir = Path(data_dir)
         data_files = list(data_dir.glob("*.json"))
-        # cla_validator.validate_input_file(data_dir)
 
         print("Reading data:\n")
         spark_df, sc, spark = create_pyspark_df(json_files)
