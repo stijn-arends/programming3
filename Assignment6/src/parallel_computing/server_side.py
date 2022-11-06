@@ -5,6 +5,7 @@ This module contains code from the server side.
 from multiprocessing.managers import BaseManager
 import queue
 import time
+from typing import Callable
 
 
 __author__ = "Stijn Arends"
@@ -17,12 +18,13 @@ class ServerSide:
     Class that handles the server side.
     """
 
-    def __init__(self, ip_adress: str, port: int, auth_key: str, poison_pill: str) -> None:
+    def __init__(self, ip_adress: str, port: int, auth_key: bytes, poison_pill: str) -> None:
         """Initializer"""
         self.ip_adress = ip_adress
         self.port = port
         self.auth_key = auth_key
         self.poison_pill = poison_pill
+        self.results = None
 
     def make_server_manager(self) -> BaseManager:
         """
@@ -50,7 +52,7 @@ class ServerSide:
         return manager
 
 
-    def run_server(self, func_name, data, *args) -> None: # data, out_dir
+    def run_server(self, func_name: Callable, data, *args) -> None: # data, out_dir
         """
         Put jobs in the jobs queue and check if the data is being processed
         by checking if the result queue is getting filled. Stop all the clients when
@@ -89,6 +91,7 @@ class ServerSide:
                 result = shared_result_q.get_nowait()
                 results.append(result)
                 print("Got result!", result)
+                print(f"Processed: {(len(results) / number_expected_results) * 100:.3f}%")
                 if len(results) == number_expected_results:
                     print("Got all results!")
                     break
@@ -102,4 +105,5 @@ class ServerSide:
         # realize the job queue is empty and exit in an orderly way.
         time.sleep(5)
         print("Aaaaaand we're done for the server!")
+        self.results = results
         manager.shutdown()

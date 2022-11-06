@@ -1,0 +1,11 @@
+,Question,Asnwer
+0,How large a group of co-authors does the average publication have?,3.123387620321236
+1,Do authors mostly publish using always the same group of authors?,43.418%
+2,Do authors mainly reference papers with other authors with whom they've co-authored papers (including themselves)?,14.683%
+3,"What is the distribution in time for citations of papers in general, and for papers with the highest number of citations? Do they differ?","{'general': '0.1356 years', 'high': '7.63 years'}"
+4,Is there a correlation between citations and the number of keywords that papers share? I.e. papers which share the same subject cite each other more often.,0.246
+5,"For the most-cited papers (define your own cutoff), is the correlation in shared keywords between them and the papers that cite them different from (5) ?",0.017
+6,Do papers mostly reference other papers that were written in the same language?,97.8%
+7,What is the most cited paper?,"{'PMID': '11846609', 'author': 'Livak, K.J.', 'citations': 48, 'title': 'Analysis of relative gene expression data using real-time quantitative PCR and the 2(-Delta Delta C(T)) Method.'}"
+8,Who is the most cited author?,"{'author': 'Wang, Y.', 'citations': 155}"
+9,Which author(s) has/have the highest h-inex?,"{'authors': ['Siegel, R.'], 'h-index': 3}"
