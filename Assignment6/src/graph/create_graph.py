@@ -216,12 +216,6 @@ def read_pickl(file) -> Any:
 
 def main() -> None:
     """main"""
-    # adjlist = "/commons/dsls/dsph/2022/graph_data/adjlist_articles.csv"
-    # nodes_no_refs = "/commons/dsls/dsph/2022/graph_data/nodes_no_refs.txt"
-    # attr_dict = "/commons/dsls/dsph/2022/graph_data/attribute_data/all_attributes.pkl"
-    # out_file = "/commons/dsls/dsph/2022/graph_data/citation_graph.pkl"
-    # out_file_full = "/commons/dsls/dsph/2022/graph_data/citation_graph_full.pkl"
-
     cla_parser = ArgumentParser()
     adj_list = Path(cla_parser.get_argument('adj_list'))
     attr_dict = Path(cla_parser.get_argument('attributes'))
@@ -238,7 +232,6 @@ def main() -> None:
     full_graph = graph.create_full_graph()
     to_pickle(full_graph, out_file_full)
     
-
     print("Calculate most cited paper:")
     in_degrees = np.array(list(dict(simple_graph.in_degree).values()))
     print(f"Max: {np.max(in_degrees)}")
