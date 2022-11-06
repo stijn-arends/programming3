@@ -6,7 +6,10 @@ __author__ = 'Stijn Arends'
 __version__ = 'v.01'
 
 # IMPORTS
+import sys
+import os
 import pickle
+import argparse
 from itertools import combinations
 from typing import Any, Tuple
 from pathlib import Path
@@ -34,6 +37,71 @@ def read_pickl(file) -> Any:
         data = pickle.load(fh)
 
     return data
+
+
+class ArgumentParser:
+    """
+    Class to parse the input arguments.
+    """
+
+    def __init__(self) -> None:
+        """Initializer"""
+        self.parser = self._create_argument_parser()
+        # Print help if no arguments are supplied and stop the program
+        if len(sys.argv) == 1:
+            self.parser.print_help(sys.stderr)
+            sys.exit(1)
+        self.arguments = self.parser.parse_args()
+
+    @staticmethod
+    def _create_argument_parser():
+        """
+        Create an argument parser.
+
+        :returns
+        --------
+        parser - ArgumentParser
+        """
+        parser = argparse.ArgumentParser(prog=os.path.basename(__file__),
+            description="Python script that analyzes parsed pubmed data.",
+            epilog="Contact: stijnarend@live.nl")
+
+        parser.version = __version__
+
+        parser.add_argument("-d", '--data_dir', action="store",
+                    dest="d", required=True, type=str,
+                    help="Location of the parsed pubmed data in json format.")
+
+        parser.add_argument("-g", '--graph', action="store",
+                    dest="g", required=True, type=str,
+                    help="The citation graph stored inside a pickle file.")
+
+        parser.add_argument('-v',
+            '--version',
+            help='Displays the version number of the script and exitst',
+            action='version')
+
+        return parser
+
+    def get_argument(self, argument_key: str) -> Any:
+        """
+        Method to get an input argument.
+
+        :parameters
+        -----------
+        argument_key - str
+            Name of command line argument.
+
+        :returns
+        --------
+        value - Any
+            Value of a command line argument
+        """
+        if self.arguments is not None and argument_key in self.arguments:
+            value = getattr(self.arguments, argument_key)
+        else:
+            value = None
+        return value
 
 
 class AnalyzeData:
@@ -591,14 +659,15 @@ def make_data_dir(path: Path) -> None:
 
 def main():
     """main"""
-    json_dir = "/commons/dsls/dsph/2022/final_parsed_articles/"
-    json_files = json_dir + "*.json"
-    subset_graph = "/commons/dsls/dsph/2022/graph_data/citation_subgraph_3.pkl"
+    cla_parser = ArgumentParser()
+
+    data_dir = Path(cla_parser.get_argument('d'))
+    subset_graph = Path(cla_parser.get_argument('g'))
+    json_files = data_dir.__str__() + "/*.json"
 
     out_path = Path(__file__).parent.parent.absolute()
     result_files = out_path / 'result_files'
     make_data_dir(result_files)
-    print(f"Output path: {out_path}") 
 
     analyze_data = AnalyzeData(json_files)
 
@@ -691,6 +760,7 @@ def main():
     questions_answers.to_csv(out_path / 'questions_answers.csv', sep=',', header=True)
 
 
+# python analyze_data.py -d /commons/dsls/dsph/2022/final_parsed_articles/ -g /commons/dsls/dsph//2022/graph_data/citation_subgraph_3.pkl
 
 if __name__ == "__main__":
     main()
