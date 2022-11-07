@@ -7,13 +7,13 @@
 <h1 align="center">Investigation of the scientific literature</h1>
 <h2 align="center">Assignment 6 - programming 3</h2>
   <a href="https://pubmed.ncbi.nlm.nih.gov/">
-    <img src="figures/PubMed-Logo.png" alt="Logo" width="30%" height="90">
+    <img src="figures/logos/PubMed-Logo.png" alt="Logo" width="30%" height="90">
   </a>
   <a href="https://spark.apache.org/docs/latest/api/python/index.html">
-    <img src="figures/Apache_Spark_logo.png" alt="spark" width="30%" height="90" align='right'>
+    <img src="figures/logos/Apache_Spark_logo.png" alt="spark" width="30%" height="90" align='right'>
   </a>
    <a href="https://networkx.org/">
-    <img src="figures/networkx_logo.svg" alt="spark" width="30%" height="90" align='left'>
+    <img src="figures/logos/networkx_logo.svg" alt="spark" width="30%" height="90" align='left'>
   </a>
 </div>
 <br>
@@ -44,6 +44,9 @@ This project is divided into three different sections:
 3. Analyze data using pyspark and networkx
 
 ### 1. Processing the data
+<details>
+  <summary>info processing</summary>
+
 The PubMed data (XML format) was processed in parallel using the built-in python library [multiprocessing](https://docs.python.org/3/library/multiprocessing.html). The [pubmed_parser](src/pubmed_parser/) and [parallel_computing](src/parallel_computing/) directories contain the code for parsing the data and setting up a server and client for processing the data in parallel. 
 
 To [main.py](src/main.py) script can be used to process the data and to store the rsults in json format. It requires the user to specify a few arguments:
@@ -81,8 +84,11 @@ Client:
 ```bash
 python src/main.py -p 4235 --host assemblix2019 -c -n 2
 ```
+</details>
 
 ### 2. Creating graphs
+<details>
+  <summary>info creating graph</summary>
 The next step is to save the processed data into a graph so that it can be properly analyzed. The scripts associated with creating the graphs are stored in the [graph](src/graph/) directory.
 
 First, the data needed to create the graph must be produced: adjacency list, node attribute info and a text file containing nodes without any references. This can be done using the [create_graph_data.py](src/graph/create_graph_data.py) script, this script again works with a star topology network so a server and at least one client need to be used to process the data. 
@@ -118,7 +124,7 @@ Next, the [creat_graph.py](src/graph/create_graph.py) script is ran to create an
 
 > NOTE: This script might take a while to finish running due to the sheer size of the data. Also, loading in the node attributes from the pickle failed due to the size of it. Adviced to only use this script to produce a graph without node attributes. To create a graph with node attributes please use the script that produces a subgraph, explained below.
 
-### Creating a subgraph
+#### 2.1 Creating a subgraph
 Finally, there is alo an option to take a random subset of the data to produce a graph that is easier to work with. This can be achieved by using the [create_subset_graph.py](src/graph/create_subset_graph.py) script, which takes an argument `-n` to specify the number of articles to use to create the graph.
 
 > NOTE: If ~5000 articles are specified a graph of aroung 160k nods will be produced. This is because all the 5000 articles also contain references (or out going edges/nodes) and these will also be included to create the graph.
@@ -134,8 +140,11 @@ Finally, there is alo an option to take a random subset of the data to produce a
 ```
 
 </details>
+</details>
 
 ### 3. Analyze data
+<details>
+  <summary>info analyze data</summary>
 The final step is to analyze and visualize the data using pyspark and networkx. The data can be analyzed using the [analyze_data.py](src/analyze_data.py) script which uses the parsed PubMed data (json format) and the networkx graph to answer the questions, it also stores the results in a CSV file. 
 
 ```bash
@@ -155,6 +164,7 @@ python src/analyze_data.py -d /commons/dsls/dsph/2022/parsed_articles/ -g /commo
 <br>
 
 Finally, the [plot_results.ipynb](plot_results.ipynb) notebook was used to visualize the results. An example of one of the visualization can be seen in the [result](#results) section. 
+</details>
 
 * * *
 ## Results
