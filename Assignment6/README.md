@@ -40,10 +40,10 @@ Furthermore, we wish to answer these specific questions:
 ## Getting Started
 This project is divided into three different sections:
 1. Process the data using multiprocessing
-2. Create graphs
+2. Creating graphs
 3. Analyze data using pyspark and networkx
 
-### Processing the data
+### 1. Processing the data
 The PubMed data (XML format) was processed in parallel using the built-in python library [multiprocessing](https://docs.python.org/3/library/multiprocessing.html). The [pubmed_parser](src/pubmed_parser/) and [parallel_computing](src/parallel_computing/) directories contain the code for parsing the data and setting up a server and client for processing the data in parallel. 
 
 To [main.py](src/main.py) script can be used to process the data. It requires the user to specify a few arguments:
@@ -64,14 +64,17 @@ To [main.py](src/main.py) script can be used to process the data. It requires th
 ```
 
 </details>
+<br>
+
 > NOTE: to reproduce this help message run: python src/main.py -h
+
 In order to process the data a network([star topology](https://www.computerhope.com/jargon/s/startopo.htm)) needs to be set up where one computer acts as the server that divides the work and one or multiple computers act as client that take work from the server and process the data. 
 
 Therefore, the [main.py](src/main.py) needs to be ran atleast twice(once as a server and once as a client). To specify wheter the script will act as a server or client can be indicated with the `-s` and `-c` flags respectively.
 
 Server:
 ```bash
-python src/main.py -d /data/dataprocessing/NCBI/PubMed/ -p 4235 --host assemblix2019 -s -o /commons/dsls/dsph/2022/test/
+python src/main.py -d /data/dataprocessing/NCBI/PubMed/ -p 4235 --host assemblix2019 -s -o /commons/dsls/dsph/2022/parsed_articles/
 ```
 
 Client: 
@@ -79,9 +82,85 @@ Client:
 python src/main.py -p 4235 --host assemblix2019 -c -n 2
 ```
 
+### 2. Creating graphs
+The next step is to save the processed data into a graph so that it can be properly analyzed. The scripts associated with creating the graphs are stored in the [graph](src/graph/) directory.
+
+First, the data needed to create the graph must be produced: adjacency list, node attribute info and a text file containing nodes without any references. This can be done using the [create_graph_data.py](src/graph/create_graph_data.py) script, this script again works with a star topology network so a server and at least one client need to be used to process the data. 
+
+> NOTE: this script uses the same arguments as the main.py script, except that the `-d` argument now needs the parsed pubmed data in json format produced by the main.py script.
+
+Server:
+```bash
+python src/graph/create_graph_data.py -d /commons/dsls/dsph/2022/parsed_articles -p 4235 --host assemblix2019 -s -o /commons/dsls/dsph/2022/graph_data/
+```
+
+Client: 
+```bash
+python src/main.py -p 4235 --host assemblix2019 -c -n 2
+```
+
+Next, the [creat_graph.py](src/graph/create_graph.py) script is ran to create and save a networkx graph. It can create a graph that only contains nodes and edges as well as a graph that contain nodes, edges and node attributes. 
+
+<details>
+  <summary>create_graph.py arguments</summary>
+
+```bash
+  -h, --help          show help message
+  --adj_list          File containing an adjaceny list (CSV file)
+  --attributes        Pickle file containing a dictionary with node
+                      attributes
+  --nodes_data        File containing a list of source nodes to use.
+  -o, --output        The output directory to store the results
+```
+
+</details>
+<br>
+
+> NOTE: This script might take a while to finish running due to the size of the data. Also, loading in the node attributes from the pickle failed due to the size of it. Adviced to only use this script to produce a graph without node attributes. To create a graph with node attributes please use the script that produces a subgraph, explained below.
+
+### Creating a subgraph
+Finally, there is alo an option to take a random subset of the data to produce a graph that is easier to work with. This can be achieved by using the [create_subset_graph.py](src/graph/create_subset_graph.py) script, which takes an argument `-n` to specify the number of articles to use to create the graph.
+
+> NOTE: If ~5000 articles are specified a graph of aroung 160k nods will be produced. This is because all the 5000 articles also contain references (or out going edges/nodes) and these will also be included to create the graph.
+
+<details>
+  <summary>create_subset_graph.py arguments</summary>
+
+```bash
+  -h, --help          show help message
+  -d, --data_dir      Location of the parsed PubMed data in json format
+  -n                  Number of rows to take from the entire data frame.
+  -o, --output        Location of output directory
+```
+
+</details>
+<br>
+
+### 3. Analyze data
+The final step is to analyze and visualize the data using pyspark and networkx. The data can be analyzed using the [analyze_data.py](src/analyze_data.py) script which uses the parsed PubMed data (json format) and the networkx graph to answer the questions, it also stores the results in a CSV file. 
+
+```bash
+python src/analyze_data.py -d /commons/dsls/dsph/2022/parsed_articles/ -g /commons/dsls/dsph/2022/graph_data/citation_graph.pkl
+```
+
+<details>
+  <summary>analyze_data.py arguments</summary>
+
+```bash
+  -h, --help          show help message
+  -d, --data_dir      Location of the parsed PubMed data in json format
+  -g, --graph         The citaion graph stored inside a pickle file.
+```
+
+</details>
+<br>
+
+Finally, the [plot_results.ipynb](plot_results.ipynb) notebook was used to visualize the results. An example of one of the visualization can be seen in the [result](#results) section. 
+
 * * *
 ## Results
 
+This graph shows how often authors cite other papers that include authors with who they have worked with in the past.
 ![graph_author](figures/common_authors_graph.png)
 
 * * *
