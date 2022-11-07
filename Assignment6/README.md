@@ -46,7 +46,7 @@ This project is divided into three different sections:
 ### 1. Processing the data
 The PubMed data (XML format) was processed in parallel using the built-in python library [multiprocessing](https://docs.python.org/3/library/multiprocessing.html). The [pubmed_parser](src/pubmed_parser/) and [parallel_computing](src/parallel_computing/) directories contain the code for parsing the data and setting up a server and client for processing the data in parallel. 
 
-To [main.py](src/main.py) script can be used to process the data. It requires the user to specify a few arguments:
+To [main.py](src/main.py) script can be used to process the data and to store the rsults in json format. It requires the user to specify a few arguments:
 
 <details>
   <summary>main.py arguments</summary>
@@ -116,7 +116,7 @@ Next, the [creat_graph.py](src/graph/create_graph.py) script is ran to create an
 </details>
 <br>
 
-> NOTE: This script might take a while to finish running due to the size of the data. Also, loading in the node attributes from the pickle failed due to the size of it. Adviced to only use this script to produce a graph without node attributes. To create a graph with node attributes please use the script that produces a subgraph, explained below.
+> NOTE: This script might take a while to finish running due to the sheer size of the data. Also, loading in the node attributes from the pickle failed due to the size of it. Adviced to only use this script to produce a graph without node attributes. To create a graph with node attributes please use the script that produces a subgraph, explained below.
 
 ### Creating a subgraph
 Finally, there is alo an option to take a random subset of the data to produce a graph that is easier to work with. This can be achieved by using the [create_subset_graph.py](src/graph/create_subset_graph.py) script, which takes an argument `-n` to specify the number of articles to use to create the graph.
@@ -134,7 +134,6 @@ Finally, there is alo an option to take a random subset of the data to produce a
 ```
 
 </details>
-<br>
 
 ### 3. Analyze data
 The final step is to analyze and visualize the data using pyspark and networkx. The data can be analyzed using the [analyze_data.py](src/analyze_data.py) script which uses the parsed PubMed data (json format) and the networkx graph to answer the questions, it also stores the results in a CSV file. 
@@ -160,15 +159,54 @@ Finally, the [plot_results.ipynb](plot_results.ipynb) notebook was used to visua
 * * *
 ## Results
 
-This graph shows how often authors cite other papers that include authors with who they have worked with in the past.
+This graph shows how often authors cite other papers that include authors with who they have worked with in the past. For all the results please see the [figures/](figures/) directory or the [report](report.pdf).
 ![graph_author](figures/common_authors_graph.png)
 
 * * *
 ## Installation
+The python dependencies can be found inside the [install/requirements.txt](install/requirements.txt) file. The propper dependencies can be installed using conda, pip or via the [makefile](makefile).
 
+<details>
+  <summary>Installing via conda</summary>
+
+How to install conda on your system can be found [here](https://docs.anaconda.com/anaconda/install/index.html).
+
+To create a new environment which contains all the required packages plus the right version run the following code:
+
+```bash
+  conda env create -f install/environment.yml
+```
+</details>
+
+<details>
+  <summary>Installing via pip</summary>
+
+
+To install all the required packages plus the right version run the following code:
+
+```bash
+  pip install -r install/requirements.txt
+```
+</details>
+
+<details>
+  <summary>Installing via makefile</summary>
+
+To create a new virutal environment which contains all the required packages plus the right version run the following code:
+
+```bash
+  make venv
+```
+
+This will create a virtual environment called `pubmed` which is stored inside the `~/.venv` directory.
+</details>
 
 * * *
 ## Requirements
+
+| Component                         | version |
+| --------------------------------- | :-----: |
+| [python](https://www.python.org/) | `> 3.9` |
 
 * * *
 ## Author
@@ -178,6 +216,8 @@ Stijn Arends - contact me via [mail](mailto:s.arends@st.hanze.nl).
 * * *
 ## License
 This project contains an [MIT license](../LICENSE)
+
+<p align='right'>(<a href=#top>back to top</a>)</p>
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
