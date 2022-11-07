@@ -4,14 +4,15 @@ either with attributes or without.
 """
 
 # imports
-import sys
-import os
-import time
-import pickle
 import argparse
-from typing import Callable, Any
+import os
+import pickle
+import sys
+import time
 from functools import wraps
 from pathlib import Path
+from typing import Any, Callable
+
 import networkx as nx
 import numpy as np
 
@@ -33,8 +34,9 @@ def time_func(func) -> Callable:
         start_time = time.time()
         result = func(*args, **kwargs)
         elapsed = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
-        print(f'Function {func.__name__!r} executed in {elapsed}\n')
+        print(f"Function {func.__name__!r} executed in {elapsed}\n")
         return result
+
     return wrap_func
 
 
@@ -61,32 +63,53 @@ class ArgumentParser:
         --------
         parser - ArgumentParser
         """
-        parser = argparse.ArgumentParser(prog=os.path.basename(__file__),
+        parser = argparse.ArgumentParser(
+            prog=os.path.basename(__file__),
             description="Python script creates graphs.",
-            epilog="Contact: stijnarend@live.nl")
+            epilog="Contact: stijnarend@live.nl",
+        )
 
         parser.version = __version__
 
-        parser.add_argument('--adj_list', action="store",
-                    dest="adj_list", required=True,
-                    help="File containing an adjacency list.")
+        parser.add_argument(
+            "--adj_list",
+            action="store",
+            dest="adj_list",
+            required=True,
+            help="File containing an adjacency list.",
+        )
 
-        parser.add_argument("--attributes", action="store",
-                           dest="attributes", required=True,
-                           help="Pickle file containing a dictionary with node attributes.")
+        parser.add_argument(
+            "--attributes",
+            action="store",
+            dest="attributes",
+            required=True,
+            help="Pickle file containing a dictionary with node attributes.",
+        )
 
-        parser.add_argument('--nodes_data', action="store",
-                    dest="nodes_data", required=True,
-                    help="File containing a list of source nodes to use.")
+        parser.add_argument(
+            "--nodes_data",
+            action="store",
+            dest="nodes_data",
+            required=True,
+            help="File containing a list of source nodes to use.",
+        )
 
-        parser.add_argument('-o', '--output', action="store",
-                    dest="o", required=True,
-                    help="Location of output directory.")
+        parser.add_argument(
+            "-o",
+            "--output",
+            action="store",
+            dest="o",
+            required=True,
+            help="Location of output directory.",
+        )
 
-        parser.add_argument('-v',
-            '--version',
-            help='Displays the version number of the script and exitst',
-            action='version')
+        parser.add_argument(
+            "-v",
+            "--version",
+            help="Displays the version number of the script and exitst",
+            action="version",
+        )
 
         return parser
 
@@ -115,14 +138,14 @@ class Graph:
     """
     Class to create a networkx grapg using an
     adjaceny list and a dictionary with node attribute info
-    inisde of a pickle file. 
+    inisde of a pickle file.
     """
 
     def __init__(self, adj_list: Path, attr_dict: Path, node_file: Path) -> None:
         """
         Initializer
         """
-        print('Reading adjlist data:')
+        print("Reading adjlist data:")
         self.edge_list: nx.DiGraph = self.read_adjlist_data(adj_list)
         print("Reading attribute info:")
         self.attr_dict: dict = read_pickl(attr_dict)
@@ -143,7 +166,7 @@ class Graph:
         nodes_list = self.node_file
         graph.add_nodes_from(nodes_list)
         return graph
-        
+
     def create_full_graph(self) -> nx.DiGraph:
         """
         Create a citation graph in the form of a networkx
@@ -188,10 +211,10 @@ class Graph:
         noddes_list - list[str]
             List of source nodes
         """
-        with open(file, 'r') as f:
-            nodes_data = f.readlines()
+        with open(file, "r", encoding="utf-8") as file_handle:
+            nodes_data = file_handle.readlines()
 
-        nodes_list = nodes_data[0].split(' ')
+        nodes_list = nodes_data[0].split(" ")
         return nodes_list
 
 
@@ -200,7 +223,7 @@ def to_pickle(data, out_file) -> None:
     """
     Write object to pickle file
     """
-    with open(out_file, 'wb') as file_handler:
+    with open(out_file, "wb") as file_handler:
         pickle.dump(data, file_handler)
 
 
@@ -208,8 +231,8 @@ def read_pickl(file) -> Any:
     """
     Read in a pickle file.
     """
-    with open(file, 'rb') as fh:
-        data = pickle.load(fh)
+    with open(file, "rb") as file_handle:
+        data = pickle.load(file_handle)
 
     return data
 
@@ -217,10 +240,10 @@ def read_pickl(file) -> Any:
 def main() -> None:
     """main"""
     cla_parser = ArgumentParser()
-    adj_list = Path(cla_parser.get_argument('adj_list'))
-    attr_dict = Path(cla_parser.get_argument('attributes'))
-    nodes_no_refs = Path(cla_parser.get_argument('nodes_data'))
-    out_dir = Path(cla_parser.get_argument('o'))
+    adj_list = Path(cla_parser.get_argument("adj_list"))
+    attr_dict = Path(cla_parser.get_argument("attributes"))
+    nodes_no_refs = Path(cla_parser.get_argument("nodes_data"))
+    out_dir = Path(cla_parser.get_argument("o"))
     out_file = out_dir / "citation_graph.pkl"
     out_file_full = out_dir / "citation_graph_full.pkl"
 
@@ -231,7 +254,7 @@ def main() -> None:
 
     full_graph = graph.create_full_graph()
     to_pickle(full_graph, out_file_full)
-    
+
     print("Calculate most cited paper:")
     in_degrees = np.array(list(dict(simple_graph.in_degree).values()))
     print(f"Max: {np.max(in_degrees)}")

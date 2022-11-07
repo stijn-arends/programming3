@@ -2,23 +2,21 @@
 
 """Module"""
 
-__author__ = 'Stijn Arends'
-__version__ = 'v.01'
+__author__ = "Stijn Arends"
+__version__ = "v.01"
 
 # IMPORTS
-import sys
-import os
 import argparse
+import os
+import sys
 from pathlib import Path
 from typing import Any
 
 import pyspark
+import pyspark.sql.functions as F
 from pyspark import SparkContext
 from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StringType, ArrayType, DateType
-
-from pyspark.sql.functions import row_number, monotonically_increasing_id
-import pyspark.sql.functions as F
+from pyspark.sql.types import ArrayType, DateType, StringType, StructType
 
 
 class ArgumentParser:
@@ -44,24 +42,40 @@ class ArgumentParser:
         --------
         parser - ArgumentParser
         """
-        parser = argparse.ArgumentParser(prog=os.path.basename(__file__),
+        parser = argparse.ArgumentParser(
+            prog=os.path.basename(__file__),
             description="Python script that create an attribute list for a graph",
-            epilog="Contact: stijnarend@live.nl")
+            epilog="Contact: stijnarend@live.nl",
+        )
 
         parser.version = __version__
 
-        parser.add_argument("-d", '--data_dir', action="store",
-                    dest="d", required=True, type=str,
-                    help="Location of the parsed pubmed data in json format.")
+        parser.add_argument(
+            "-d",
+            "--data_dir",
+            action="store",
+            dest="d",
+            required=True,
+            type=str,
+            help="Location of the parsed pubmed data in json format.",
+        )
 
-        parser.add_argument("-o", '--out-dir', action="store",
-                    dest="o", required=False, type=str,
-                    help="The output directory to store the results - caution: requires a lot of space.")
+        parser.add_argument(
+            "-o",
+            "--out-dir",
+            action="store",
+            dest="o",
+            required=False,
+            type=str,
+            help="The output directory to store the results - caution: requires a lot of space.",
+        )
 
-        parser.add_argument('-v',
-            '--version',
-            help='Displays the version number of the script and exitst',
-            action='version')
+        parser.add_argument(
+            "-v",
+            "--version",
+            help="Displays the version number of the script and exitst",
+            action="version",
+        )
 
         return parser
 
@@ -95,40 +109,44 @@ def create_pyspark_df(file_path: str):
     -----------
     file_path - str
         Path to json files of parsed articles.
-    
+
     :returns
     --------
     df - pyspark.sql.datafram.DataFrame
         All parsed articles inside a pyspark dataframe.
     """
+    schema = (
+        StructType()
+        .add("pmid", StringType())
+        .add("language", StringType())
+        .add("author", StringType())
+        .add("title", StringType())
+        .add("co_authors", ArrayType(StringType()))
+        .add("journal", StringType())
+        .add("key_words", ArrayType(StringType()))
+        .add("doi", StringType())
+        .add("pmc", StringType())
+        .add("publish_date", DateType())
+        .add("ref_ids", ArrayType(StringType()))
+        .add("ref_authors", ArrayType(ArrayType(StringType())))
+        .add("ref_titles", ArrayType(StringType()))
+        .add("ref_type", StringType())
+    )
 
-    schema = StructType() \
-        .add('pmid', StringType()) \
-        .add('language', StringType()) \
-        .add('author', StringType()) \
-        .add('title', StringType()) \
-        .add('co_authors', ArrayType(StringType())) \
-        .add('journal', StringType()) \
-        .add('key_words', ArrayType(StringType())) \
-        .add('doi', StringType()) \
-        .add('pmc', StringType()) \
-        .add('publish_date', DateType()) \
-        .add('ref_ids', ArrayType(StringType())) \
-        .add("ref_authors", ArrayType(ArrayType(StringType()))) \
-        .add('ref_titles', ArrayType(StringType())) \
-        .add('ref_type', StringType())
+    conf = pyspark.SparkConf().setAll(
+        [
+            ("spark.executor.memory", "128g"),
+            ("spark.master", "local[16]"),
+            ("spark.driver.memory", "128g"),
+        ]
+    )
+    spark_context = SparkContext(conf=conf)
+    spark_context.getConf().getAll()
+    spark = SparkSession(spark_context)
+    spark_df = spark.read.option("multiline", "true").schema(schema).json(file_path)
 
-    conf = pyspark.SparkConf().setAll([('spark.executor.memory', '128g'),
-                                ('spark.master', 'local[16]'),
-                                ('spark.driver.memory', '128g')])
-    sc = SparkContext(conf=conf)
-    sc.getConf().getAll()
-    spark = SparkSession(sc)
-    df = spark.read.option("multiline","true").schema(schema) \
-        .json(file_path)
-        
-    df = df.withColumn('row_id',F.monotonically_increasing_id())
-    return df, sc, spark
+    spark_df = spark_df.withColumn("row_id", F.monotonically_increasing_id())
+    return spark_df, spark_context, spark
 
 
 def write_partitions_out(spark_df, partition_by: str, out_dir: str) -> None:
@@ -144,13 +162,15 @@ def write_partitions_out(spark_df, partition_by: str, out_dir: str) -> None:
     out_dir - str
         Location of the output folder.
 
-    Source: https://stackoverflow.com/questions/53925954/pyspark-create-multiple-json-files-from-dataframe
+    Source:
+    https://stackoverflow.com/questions/53925954/pyspark-create-multiple-json-files-from-dataframe
     """
     if not partition_by in spark_df.columns:
-        print(f"Could not find column: '{partition_by}' inside supplied dataframe.")
-        return None
+        raise ValueError(
+            f"Could not find column: '{partition_by}' inside supplied dataframe."
+        )
     spark_df.write.partitionBy(partition_by).json(out_dir)
- 
+
 
 def make_output_dir(path: Path) -> None:
     """
@@ -177,19 +197,18 @@ def main():
     """main"""
     cla_parser = ArgumentParser()
 
-    data_dir = Path(cla_parser.get_argument('d'))
-    out_dir = Path(cla_parser.get_argument('o'))
+    data_dir = Path(cla_parser.get_argument("d"))
+    out_dir = Path(cla_parser.get_argument("o"))
     # make_output_dir(out_dir)
-    # json_dir = "/commons/dsls/dsph/2022/final_parsed_articles/"
-    json_files = data_dir.__str__() + "/*.json"
+    json_files = str(data_dir) + "/*.json"
 
     print("Reading data:\n")
-    spark_df, sc, spark = create_pyspark_df(json_files)
+    spark_df, spark_context, _ = create_pyspark_df(json_files)
 
     print("Writing out partitions of data frame, this wil take a while...")
-    write_partitions_out(spark_df, "pmid", out_dir.__str__())
+    write_partitions_out(spark_df, "pmid", str(out_dir))
 
-    sc.stop()
+    spark_context.stop()
 
 
 if __name__ == "__main__":

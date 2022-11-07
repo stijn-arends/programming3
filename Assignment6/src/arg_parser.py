@@ -2,9 +2,9 @@
 Module for parsing arguments.
 """
 
-import sys
 import argparse
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -37,45 +37,83 @@ class ArgumentParser:
         --------
         parser - ArgumentParser
         """
-        parser = argparse.ArgumentParser(prog=os.path.basename(__file__),
+        parser = argparse.ArgumentParser(
+            prog=os.path.basename(__file__),
             description="Python script that parses pubmed articles",
-            epilog="Contact: stijnarend@live.nl")
+            epilog="Contact: stijnarend@live.nl",
+        )
 
         parser.version = __version__
 
-        parser.add_argument("-d", '--data_dir', action="store",
-                    dest="d", required=False, type=str,
-                    help="Location of the pubmed data.")
+        parser.add_argument(
+            "-d",
+            "--data_dir",
+            action="store",
+            dest="d",
+            required=False,
+            type=str,
+            help="Location of the pubmed data.",
+        )
 
-        parser.add_argument("-n", action="store",
-                           dest="n", required=False, type=int, default=1,
-                           help="Number of peons per client.")
+        parser.add_argument(
+            "-n",
+            action="store",
+            dest="n",
+            required=False,
+            type=int,
+            default=1,
+            help="Number of peons per client.",
+        )
 
-        parser.add_argument("-o", '--out-dir', action="store",
-                    dest="o", required=False, type=str,
-                    help="The output directory to store the results - required if server mode is selected")
+        parser.add_argument(
+            "-o",
+            "--out-dir",
+            action="store",
+            dest="o",
+            required=False,
+            type=str,
+            help="The output directory to store the results "
+            "- required if server mode is selected",
+        )
 
-        parser.add_argument("-p", '--port_number',dest='p',
-                        help="The port number that will be used",
-                        required=True, type=int)
+        parser.add_argument(
+            "-p",
+            "--port_number",
+            dest="p",
+            help="The port number that will be used",
+            required=True,
+            type=int,
+        )
 
-        parser.add_argument("--host", dest="host",
+        parser.add_argument(
+            "--host",
+            dest="host",
             help="Hosts used, first input is set as the server host",
-            required=True, nargs="?")
+            required=True,
+            nargs="?",
+        )
 
-        parser.add_argument('-v',
-            '--version',
-            help='Displays the version number of the script and exitst',
-            action='version')
+        parser.add_argument(
+            "-v",
+            "--version",
+            help="Displays the version number of the script and exitst",
+            action="version",
+        )
 
         command_group = parser.add_mutually_exclusive_group(required=True)
-        command_group.add_argument('-s', dest='s',
-            help='Server mode, can\'t be used together with -c',
-            action='store_true')
+        command_group.add_argument(
+            "-s",
+            dest="s",
+            help="Server mode, can't be used together with -c",
+            action="store_true",
+        )
 
-        command_group.add_argument('-c', dest='c',
-            help='Client Mode, can\'t be used together with -s',
-            action='store_true')
+        command_group.add_argument(
+            "-c",
+            dest="c",
+            help="Client Mode, can't be used together with -s",
+            action="store_true",
+        )
 
         return parser
 
@@ -104,15 +142,19 @@ class ArgumentParser:
         Check if the data and output directory are specified when also
         server mode is specified.
         """
-        if self.get_argument('s') and not self.get_argument('d'):
+        if self.get_argument("s") and not self.get_argument("d"):
             self.parser.print_help(sys.stderr)
-            sys.exit("\nIf server mode has been selected please also provide the "\
-                "path to the data using the -d, or --data-dir flags.")
+            sys.exit(
+                "\nIf server mode has been selected please also provide the "
+                "path to the data using the -d, or --data-dir flags."
+            )
 
-        if self.get_argument('s') and not self.get_argument('o'):
+        if self.get_argument("s") and not self.get_argument("o"):
             self.parser.print_help(sys.stderr)
-            sys.exit("\nIf server mode has been selected please also provide the "\
-                "path to the output folder using the -o, or --output-dir flags.")
+            sys.exit(
+                "\nIf server mode has been selected please also provide the "
+                "path to the output folder using the -o, or --output-dir flags."
+            )
 
 
 class CLIArgValidator:
@@ -120,7 +162,7 @@ class CLIArgValidator:
     Class to check if arguments are valid.
     """
 
-    def validate_input_file(self, input_path: str) -> None:
+    def validate_input_file(self, input_path: Path) -> None:
         """
         Validate the input files by checking if they actually exists.
         :parameters
@@ -143,8 +185,10 @@ class CLIArgValidator:
             Path to a file
         """
         if not input_path.exists():
-            raise FileNotFoundError(f'Input file does not exist!: {input_path}'\
-                '\nPlease check if directory was specified correctly.')
+            raise FileNotFoundError(
+                f"Input file does not exist!: {input_path}"
+                "\nPlease check if directory was specified correctly."
+            )
 
     @staticmethod
     def _check_xml_files(input_path: Path) -> None:

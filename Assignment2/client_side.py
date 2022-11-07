@@ -3,10 +3,10 @@ This module contains the code for the client side.
 """
 
 import multiprocessing as mp
-from multiprocessing.managers import BaseManager
 import queue
 import time
-
+from multiprocessing.managers import BaseManager
+from queue import Queue
 
 __author__ = "Stijn Arends"
 __version__ = "v0.1"
@@ -18,7 +18,9 @@ class ClientSide:
     Class that handles the client side
     """
 
-    def __init__(self, ip_adress: str, port: int, auth_key: str, poison_pill: str) -> None:
+    def __init__(
+        self, ip_adress: str, port: int, auth_key: bytes, poison_pill: str
+    ) -> None:
         self.ip_adress = ip_adress
         self.port = port
         self.auth_key = auth_key
@@ -36,15 +38,18 @@ class ClientSide:
         manager - ServerQueueManager
             manager object
         """
+
         class ServerQueueManager(BaseManager):
             """
             Server manager
             """
 
-        ServerQueueManager.register('get_job_q')
-        ServerQueueManager.register('get_result_q')
+        ServerQueueManager.register("get_job_q")
+        ServerQueueManager.register("get_result_q")
 
-        manager = ServerQueueManager(address=(self.ip_adress, self.port), authkey=self.auth_key)
+        manager = ServerQueueManager(
+            address=(self.ip_adress, self.port), authkey=self.auth_key
+        )
         manager.connect()
 
         print(f"Client connected to {self.ip_adress} - {self.port}")
@@ -64,7 +69,7 @@ class ClientSide:
         result_q = manager.get_result_q()
         self.run_workers(job_q, result_q, num_processes)
 
-    def run_workers(self, job_q: queue, result_q: queue, num_processes: int) -> None:
+    def run_workers(self, job_q: Queue, result_q: Queue, num_processes: int) -> None:
         """
         Run the workers by starting n peons.
 
@@ -86,7 +91,7 @@ class ClientSide:
         for worker in processes:
             worker.join()
 
-    def peon(self, job_q: queue, result_q: queue) -> None:
+    def peon(self, job_q: Queue, result_q: Queue) -> None:
         """
         Process the data and store the result in the result queue.
         Keep processing data untill the poisonpill is found.
@@ -107,12 +112,12 @@ class ClientSide:
                     print("Aaaaaaargh", my_name)
                     return
                 try:
-                    result = job['func_name'](job['arg'])
+                    result = job["func_name"](job["arg"])
                     print(f"Peon {my_name} works on {job['arg']}!")
-                    result_q.put({'job': job, 'result' : result})
+                    result_q.put({"job": job, "result": result})
                 except NameError:
                     print("Can't find yer fun Bob!")
-                    result_q.put({'job': job, 'result' : self.error})
+                    result_q.put({"job": job, "result": self.error})
 
             except queue.Empty:
                 print("sleepytime for", my_name)

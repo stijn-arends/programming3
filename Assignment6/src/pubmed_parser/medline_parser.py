@@ -4,11 +4,12 @@
 Module to parse medline data.
 """
 
-#IMPORTS
+import ast
+
+# IMPORTS
 # import glob
 import re
-from typing import Any
-import ast
+
 
 class MedlineParser:
     """
@@ -43,7 +44,9 @@ class MedlineParser:
         """
         self.article = article
 
-        assert "MedlineCitation" in article, "Key: MedLineCitation not found inside the article."
+        assert (
+            "MedlineCitation" in article
+        ), "Key: MedLineCitation not found inside the article."
         assert "PubmedData" in article, "Key: PubmedData not found inside the article."
 
     def get_title(self) -> str:
@@ -56,7 +59,7 @@ class MedlineParser:
             The title of the article, returns empty str when no title could be found
         """
         try:
-            title = self.article["MedlineCitation"]['Article']['ArticleTitle']
+            title = self.article["MedlineCitation"]["Article"]["ArticleTitle"]
         except (IndexError, KeyError):
             title = ""
         return title
@@ -78,9 +81,11 @@ class MedlineParser:
         """
         try:
             if "PMID" in self.article["MedlineCitation"]:
-                pmid = self.article["MedlineCitation"]['PMID']
+                pmid = self.article["MedlineCitation"]["PMID"]
             else:
-                pmid = self._search_pmid_article_list(self.article['PubmedData']['ArticleIdList'])
+                pmid = self._search_pmid_article_list(
+                    self.article["PubmedData"]["ArticleIdList"]
+                )
                 # pmid = ast.literal_eval(pmid)
         except (IndexError, KeyError):
             pmid = ""
@@ -103,8 +108,10 @@ class MedlineParser:
             PMID of an article.
         """
         pattern = re.compile(r"^\d+$")
-        matches = [ast.literal_eval(str(s)) for s in article_id_list if pattern.match(s)]
-        pmid = matches[0] if matches else "" # Grab the match if it found it
+        matches = [
+            ast.literal_eval(str(s)) for s in article_id_list if pattern.match(s)
+        ]
+        pmid = matches[0] if matches else ""  # Grab the match if it found it
         return pmid
 
     def get_author(self) -> str:
@@ -117,12 +124,16 @@ class MedlineParser:
             Full name of the author, returns empty str when author name could not be found
         """
         try:
-            last_name = self.article['MedlineCitation']['Article']['AuthorList'][0]["LastName"]
-            initials = self.article['MedlineCitation']['Article']['AuthorList'][0]["Initials"]
+            last_name = self.article["MedlineCitation"]["Article"]["AuthorList"][0][
+                "LastName"
+            ]
+            initials = self.article["MedlineCitation"]["Article"]["AuthorList"][0][
+                "Initials"
+            ]
 
             # add . between and after the initals
-            if '.' not in initials:
-                initials = ".".join(initials) + '.'
+            if "." not in initials:
+                initials = ".".join(initials) + "."
             full_name = str(last_name + ", " + initials)
         except (IndexError, KeyError):
             full_name = ""
@@ -139,7 +150,7 @@ class MedlineParser:
             A list of the co authors, returns empty list when no co authors could be found
         """
         try:
-            authors = self.article['MedlineCitation']['Article']['AuthorList'][1:]
+            authors = self.article["MedlineCitation"]["Article"]["AuthorList"][1:]
             co_author_names = []
             if authors:
                 for author in authors:
@@ -147,8 +158,8 @@ class MedlineParser:
                         last_name = author["LastName"]
                         initials = author["Initials"]
                         # add . between and after the initals
-                        if '.' not in initials:
-                            initials = ".".join(initials) + '.'
+                        if "." not in initials:
+                            initials = ".".join(initials) + "."
                         co_author_names.append(str(last_name + ", " + initials))
         except (IndexError, KeyError):
             co_author_names = []
@@ -164,7 +175,7 @@ class MedlineParser:
             The journal of the article, returns empty str when journal could not be found
         """
         try:
-            journal = self.article["MedlineCitation"]['Article']['Journal']['Title']
+            journal = self.article["MedlineCitation"]["Article"]["Journal"]["Title"]
         except (IndexError, KeyError):
             journal = ""
         return journal
@@ -179,7 +190,9 @@ class MedlineParser:
             A list of the key words, returns empty list when no key words could be found
         """
         try:
-            key_words = [str(word) for word in self.article["MedlineCitation"]['KeywordList'][0]]
+            key_words = [
+                str(word) for word in self.article["MedlineCitation"]["KeywordList"][0]
+            ]
         except (IndexError, KeyError):
             key_words = []
         return key_words
@@ -195,7 +208,7 @@ class MedlineParser:
             returns empty str when language could not be found
         """
         try:
-            language = self.article["MedlineCitation"]['Article']['Language'][0]
+            language = self.article["MedlineCitation"]["Article"]["Language"][0]
         except (IndexError, KeyError):
             language = ""
         return language
@@ -218,8 +231,8 @@ class MedlineParser:
         MedlineParser._search_doi()
         """
         try:
-            elocation_id = self.article["MedlineCitation"]['Article']['ELocationID']
-            article_id_list = self.article['PubmedData']['ArticleIdList']
+            elocation_id = self.article["MedlineCitation"]["Article"]["ELocationID"]
+            article_id_list = self.article["PubmedData"]["ArticleIdList"]
             doi_list = elocation_id if len(elocation_id) > 0 else article_id_list
             doi = self._search_doi(doi_list)
         except (KeyError, IndexError):
@@ -247,9 +260,9 @@ class MedlineParser:
             the Digital Object Identifier(DOI) of the article.
         """
         # Use a regex pattern to extract the DOI from the list of strings
-        pattern = re.compile(r'(10.(\d)+\/(\S)+)')
+        pattern = re.compile(r"(10.(\d)+\/(\S)+)")
         matches = [str(s) for s in doi_list if pattern.match(s)]
-        doi = matches[0] if matches else "" # Grab the match if it found it
+        doi = matches[0] if matches else ""  # Grab the match if it found it
         return doi
 
     def get_pmc(self) -> str:
@@ -266,10 +279,10 @@ class MedlineParser:
             it does not have one.
         """
         try:
-            article_id_list = self.article['PubmedData']['ArticleIdList']
-            pattern = re.compile(r'^PMC\d+$')
+            article_id_list = self.article["PubmedData"]["ArticleIdList"]
+            pattern = re.compile(r"^PMC\d+$")
             matches = [str(s) for s in article_id_list if pattern.match(s)]
-            pmc = matches[0] if matches else "" # Grab the match if it found it
+            pmc = matches[0] if matches else ""  # Grab the match if it found it
         except (IndexError, KeyError):
             pmc = ""
         return pmc

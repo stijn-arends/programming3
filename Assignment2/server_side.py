@@ -2,10 +2,9 @@
 This module contains code from the server side.
 """
 
-from multiprocessing.managers import BaseManager
 import queue
 import time
-
+from multiprocessing.managers import BaseManager
 
 __author__ = "Stijn Arends"
 __version__ = "v0.1"
@@ -17,7 +16,9 @@ class ServerSide:
     Class that handles the server side.
     """
 
-    def __init__(self, ip_adress: str, port: int, auth_key: str, poison_pill: str) -> None:
+    def __init__(
+        self, ip_adress: str, port: int, auth_key: bytes, poison_pill: str
+    ) -> None:
         self.ip_adress = ip_adress
         self.port = port
         self.auth_key = auth_key
@@ -40,14 +41,15 @@ class ServerSide:
             Server Queue Manager
             """
 
-        QueueManager.register('get_job_q', callable=lambda: job_q)
-        QueueManager.register('get_result_q', callable=lambda: result_q)
+        QueueManager.register("get_job_q", callable=lambda: job_q)
+        QueueManager.register("get_result_q", callable=lambda: result_q)
 
-        manager = QueueManager(address=(self.ip_adress, self.port), authkey=self.auth_key)
+        manager = QueueManager(
+            address=(self.ip_adress, self.port), authkey=self.auth_key
+        )
         manager.start()
-        print(f'Server started at port {self.port}')
+        print(f"Server started at port {self.port}")
         return manager
-
 
     def run_server(self, func_names, data) -> None:
         """
@@ -74,7 +76,7 @@ class ServerSide:
         print("Sending data!")
         for func_name in func_names:
             for dat in data:
-                shared_job_q.put({'func_name' : func_name, 'arg' : dat})
+                shared_job_q.put({"func_name": func_name, "arg": dat})
 
         time.sleep(2)
         number_expected_results = len(func_names) * len(data)

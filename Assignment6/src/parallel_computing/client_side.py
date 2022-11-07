@@ -3,10 +3,9 @@ This module contains the code for the client side.
 """
 
 import multiprocessing as mp
-from multiprocessing.managers import BaseManager
 import queue
 import time
-
+from multiprocessing.managers import BaseManager
 
 __author__ = "Stijn Arends"
 __version__ = "v0.1"
@@ -18,7 +17,7 @@ class ClientSide:
     Class that handles the client side
     """
 
-    def __init__(self, ip_adress: str, port: int, auth_key: str, poison_pill: str) -> None:
+    def __init__(self, ip_adress: str, port: int, auth_key: bytes, poison_pill: str) -> None:
         """Initializer"""
         self.ip_adress = ip_adress
         self.port = port

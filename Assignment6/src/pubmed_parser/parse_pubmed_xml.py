@@ -4,21 +4,22 @@
 Module to parse XML files containing the PubMed literature.
 """
 
-#IMPORTS
-from pathlib import Path
-import re
+# IMPORTS
 import datetime
+import re
+from pathlib import Path
 from typing import Any, Tuple
-from Bio import Entrez
-import pandas as pd
 
-try: 
+import pandas as pd
+from Bio import Entrez
+
+try:
     from pubmed_parser.medline_parser import MedlineParser
 except ModuleNotFoundError:
     from medline_parser import MedlineParser
 
 Entrez.email = "stijnarends@live.nl"
-Entrez.api_key = '9f94f8d674e1918a47cfa8afc303838b0408'
+Entrez.api_key = "9f94f8d674e1918a47cfa8afc303838b0408"
 
 
 class PubmedParser:
@@ -27,18 +28,6 @@ class PubmedParser:
 
     :get_publish_date
     :get_references
-
-    To-do:
-        - Think about using the __iter__ method instead of the
-        parse_articles method.
-        Inspiration mcoding video:
-        https://www.youtube.com/watch?v=tmeKsb2Fras
-        Look at prog2 exercises for more inspiration.
-        - Decide which reference type you want
-            - all authors
-            - only main author
-        Only the main author should be sufficient for coupling authors
-        to the PMID after everything has been parsed. 
     """
 
     def __init__(self, xml_file: Path) -> None:
@@ -70,7 +59,7 @@ class PubmedParser:
         with open(file, "br") as handle:
             records = Entrez.read(handle)
 
-        return records['PubmedArticle']
+        return records["PubmedArticle"]
 
     def get_parsed_xml(self) -> list:
         """
@@ -86,6 +75,11 @@ class PubmedParser:
     def parse_articles(self) -> pd.DataFrame:
         """
         Create a dictionary of lists and save the results in here.
+
+        :returns
+        --------
+        df_parsed_article - pd.DataFrame
+            The parsed article inside a pandas data frame.
         """
         pmid_list, title_list, author_list, co_author_list = [], [], [], []
         journal_list, key_words_list, language_list, doi_list = [], [], [], []
@@ -95,54 +89,67 @@ class PubmedParser:
             medline_parser = MedlineParser(article)
             pmid = medline_parser.get_pmid()
             pmid_list.append(pmid)
-            # print(f"\nPubmed ID: {pmid}")
+
             title = medline_parser.get_title()
             title_list.append(title)
-            # print(f"Title: {title}")
+
             author = medline_parser.get_author()
             author_list.append(author)
-            # print(f"Author: {author}")
+
             co_authors = medline_parser.get_co_authors()
             co_author_list.append(co_authors)
-            # print(f"Co-authors: {co_authors}")
+
             journal = medline_parser.get_journal()
             journal_list.append(journal)
-            # print(f"Journal: {journal}")
+
             key_words = medline_parser.get_keywords()
             key_words_list.append(key_words)
-            # print(f"Key words: {key_words}")
+
             language = medline_parser.get_language()
             language_list.append(language)
-            # print(f"Language: {language}")
+
             doi = medline_parser.get_doi()
             doi_list.append(doi)
-            # print(f"DOI: {doi}")
+
             pmc = medline_parser.get_pmc()
             pmc_list.append(pmc)
-            # print(f"PMC: {pmc}")
+
             publish_date = self.get_publish_date(article)
             publish_date_list.append(publish_date)
-            # print(f"Publish date: {publish_date}")
+
             ref_ids, ref_auth_names, ref_titles, ref_type = self.get_references(article)
-            # print(f"Reference ID list: {ref_ids}")
+
             ref_ids_list.append(ref_ids)
             ref_title_list.append(ref_titles)
             ref_auth_names_list.append(ref_auth_names)
             ref_types.append(ref_type)
 
-        parsed_data = {"pmid": pmid_list, "language": language_list,
-                    "author": author_list, "title": title_list,
-                    "co_authors": co_author_list, "journal": journal_list,
-                    "key_words": key_words_list, "doi": doi_list, "pmc": pmc_list,
-                    "publish_date": publish_date_list, "ref_ids": ref_ids_list,
-                    "ref_authors": ref_auth_names_list,
-                    "ref_titles": ref_title_list, "ref_type": ref_types}
+        parsed_data = {
+            "pmid": pmid_list,
+            "language": language_list,
+            "author": author_list,
+            "title": title_list,
+            "co_authors": co_author_list,
+            "journal": journal_list,
+            "key_words": key_words_list,
+            "doi": doi_list,
+            "pmc": pmc_list,
+            "publish_date": publish_date_list,
+            "ref_ids": ref_ids_list,
+            "ref_authors": ref_auth_names_list,
+            "ref_titles": ref_title_list,
+            "ref_type": ref_types,
+        }
 
-        df = pd.DataFrame(parsed_data)
-        df["publish_date"] = pd.to_datetime(df["publish_date"], errors='coerce')
-        df['publish_date'] = df['publish_date'].dt.strftime('%Y-%m-%d')
-        
-        return df
+        df_parsed_article = pd.DataFrame(parsed_data)
+        df_parsed_article["publish_date"] = pd.to_datetime(
+            df_parsed_article["publish_date"], errors="coerce"
+        )
+        df_parsed_article["publish_date"] = df_parsed_article[
+            "publish_date"
+        ].dt.strftime("%Y-%m-%d")
+
+        return df_parsed_article
 
     @staticmethod
     def get_publish_date(article: dict) -> datetime.date:
@@ -156,11 +163,11 @@ class PubmedParser:
 
         :returns
         --------
-        date - datetime.date
-            The date of publishing, returns empty str when date can't be found.
+        publish_date - datetime.date
+            The publish_date of publishing, returns empty str when date can't be found.
         """
         try:
-            history = article['PubmedData']['History']
+            history = article["PubmedData"]["History"]
             pubmed = False
             medline = False
             for i, history_type in enumerate(history):
@@ -171,27 +178,29 @@ class PubmedParser:
 
             try:
                 if pubmed:
-                    year = int(history[pubmed]['Year'])
-                    month = int(history[pubmed]['Month'])
-                    day = int(history[pubmed]['Day'])
-                    date = datetime.date(year, month, day)
+                    year = int(history[pubmed]["Year"])
+                    month = int(history[pubmed]["Month"])
+                    day = int(history[pubmed]["Day"])
+                    publish_date = datetime.date(year, month, day)
                 elif medline and not pubmed:
-                    year = int(history[medline]['Year'])
-                    month = int(history[medline]['Month'])
-                    day = int(history[medline]['Day'])
-                    date = datetime.date(year, month, day)
+                    year = int(history[medline]["Year"])
+                    month = int(history[medline]["Month"])
+                    day = int(history[medline]["Day"])
+                    publish_date = datetime.date(year, month, day)
                 else:
-                    date = ""
-            except ValueError: # for incorrect date (i.e., 2000-02-31)
-                date = ""
+                    publish_date = ""
+            except ValueError:  # for incorrect publish_date (i.e., 2000-02-31)
+                publish_date = ""
         except (IndexError, KeyError):
-            date = ""
-        return date
+            publish_date = ""
+        return publish_date
 
-    def get_references(self, article: dict) -> Tuple[list[Any], list[str]]:
+    def get_references(
+        self, article: dict
+    ) -> Tuple[list[Any], list[list], list[str], str]:
         """
         Extract either the main author or the PMID of all the references.
-        First look if the article contains references. Next, check which reference 
+        First look if the article contains references. Next, check which reference
         style was used:
 
         1.	A dictionary with 2 keys, “citation” and “ArticleIdList”. The citation has as value:
@@ -231,18 +240,20 @@ class PubmedParser:
         """
         ref_id_list = []
         ref_title_list = []
-        ref_author_list = [['']]
+        ref_author_list = [[""]]
         try:
-            reference_list = article['PubmedData']['ReferenceList'][0]
-            references = reference_list['Reference']
+            reference_list = article["PubmedData"]["ReferenceList"][0]
+            references = reference_list["Reference"]
             if len(references[0].keys()) > 1:
                 ref_id_list = self._get_pmid_reference(references)
-                ref_type = 'pmid'
+                ref_type = "pmid"
             else:
-                ref_author_list, ref_title_list = self._get_authors_title_reference(references)
-                ref_type = 'author'
+                ref_author_list, ref_title_list = self._get_authors_title_reference(
+                    references
+                )
+                ref_type = "author"
         except (IndexError, KeyError):
-            ref_type = 'no-ref'
+            ref_type = "no-ref"
 
         return ref_id_list, ref_author_list, ref_title_list, ref_type
 
@@ -261,20 +272,26 @@ class PubmedParser:
         pmid_list - list[int]
             List of the PMID from the references.
         """
-        pattern = re.compile(r'^\d+$')
+        pattern = re.compile(r"^\d+$")
         pmid_list = []
         try:
             for reference in references:
                 article_id_list = reference["ArticleIdList"][0]
-                pmid = article_id_list if article_id_list.attributes["IdType"] == "pubmed" else ""
-                match = pattern.match(pmid) # check if pmid only consits of digits
+                pmid = (
+                    article_id_list
+                    if article_id_list.attributes["IdType"] == "pubmed"
+                    else ""
+                )
+                match = pattern.match(pmid)  # check if pmid only consits of digits
                 if match:
                     pmid_list.append(int(pmid))
         except (IndexError, KeyError):
             pass
         return pmid_list
 
-    def _get_authors_title_reference(self, references: list) -> Tuple[list[list[str]], list[str]]:
+    def _get_authors_title_reference(
+        self, references: list
+    ) -> Tuple[list[list[str]], list[str]]:
         """
         Get the names of the authors and the title for each reference using regex.
         First, remove 'et al' from the reference. Next, extract all authors from the reference.
@@ -310,11 +327,11 @@ class PubmedParser:
         PubmedParser._get_titile_reference()
         """
         pattern_authors = r"([ÄÖÜäöüßA-Za-z,\s.])+(?:[A-Z]\.|[A-Z],){1,10}"
-        pattern_et_al = r'et al.'
+        pattern_et_al = r"et al."
         authors_references = []
         titles_references = []
 
-        try: 
+        try:
             for reference in references:
                 citation = reference["Citation"]
                 citation = re.sub(pattern_et_al, "", citation)
@@ -327,7 +344,7 @@ class PubmedParser:
 
                     # Remove the author names from the reference
                     new_str = re.sub(pattern_authors, "", citation)
-                    
+
                     # Get the title
                     title = self._get_title_reference(new_str)
                     titles_references.append(title)
@@ -356,12 +373,12 @@ class PubmedParser:
         correct_names - list[str]
             List of authors sirname and initals.
         """
-        names = names.replace('and ', '').replace('.', '').replace(',', '').rstrip()
-        names = names.split(' ')
+        names = names.replace("and ", "").replace(".", "").replace(",", "").rstrip()
+        split_names = names.split(" ")
         correct_names = []
-        for i in range(1, len(names), 2):
-            corr_initals = ".".join(names[i]) + '.'
-            correct_names.append(names[i -1] + ", " + corr_initals)
+        for i in range(1, len(split_names), 2):
+            corr_initals = ".".join(split_names[i]) + "."
+            correct_names.append(split_names[i - 1] + ", " + corr_initals)
         return correct_names
 
     @staticmethod
@@ -383,8 +400,10 @@ class PubmedParser:
         title - str
             The extracted title.
         """
-        pattern_year = r'^[\d\.|\d\.\(\)\s]+' # capture possible year that is infront title
-        pattern_title = r'^.*?(?=\.)' # Grab the first sentence until a dot
+        pattern_year = (
+            r"^[\d\.|\d\.\(\)\s]+"  # capture possible year that is infront title
+        )
+        pattern_title = r"^.*?(?=\.)"  # Grab the first sentence until a dot
 
         # Remove year infront of title if it excists
         final_str = re.sub(pattern_year, "", reference)
@@ -393,40 +412,30 @@ class PubmedParser:
         title_match = re.match(pattern_title, final_str)
         if title_match:
             return title_match.group(0)
-        else:
-            return ""
+
+        return ""
 
 
 def main():
     """
     Main func.
-
-    Something goes wrong with the date with file pubmed21n0379.xml:
-
-    When writing out the CSV file, everything becomes a str.
-    We can't have this because we would like to keep the lists inside the
-    dataframe. This stackoverflow post discusses this:
-        * https://stackoverflow.com/questions/48250995/write-lists-to-pandas-dataframe-to-csv-read-dataframe-from-csv-and-convert-to-l
     """
-    data_dir = Path("/data/dataprocessing/NCBI/PubMed/")
+    # data_dir = Path("/data/dataprocessing/NCBI/PubMed/")
 
     # This contains one option for referecing using PMID
     # file = "/data/dataprocessing/NCBI/PubMed/pubmed21n0455.xml"
 
     # This contains the other option for referencing using AUthor ID
-    file_2 = "/data/dataprocessing/NCBI/PubMed/pubmed21n0591.xml"
+    # file_2 = "/data/dataprocessing/NCBI/PubMed/pubmed21n0591.xml"
 
-    # Contains empty reference
-    file_3 = "/data/dataprocessing/NCBI/PubMed/pubmed21n0591.xml"
+    # # Contains empty reference
+    # file_3 = "/data/dataprocessing/NCBI/PubMed/pubmed21n0591.xml"
 
-    # File that contains a date error - problem solved
-    file_4 = "/data/dataprocessing/NCBI/PubMed/pubmed21n0379.xml"
-
-    # File that contains an error that occurs in _get_main_author_refences - no longer using this function
-    file_5 = "/data/dataprocessing/NCBI/PubMed/pubmed21n0632.xml"
+    # # File that contains a date error - problem solved
+    # file_4 = "/data/dataprocessing/NCBI/PubMed/pubmed21n0379.xml"
 
     # File that contains an error whilst trying to get the pmid reference - problem solved
-    file_6 = "/data/dataprocessing/NCBI/PubMed/pubmed21n1049.xml"
+    file_6 = Path("/data/dataprocessing/NCBI/PubMed/pubmed21n1049.xml")
 
     # ---- test  1 -----
 
@@ -450,13 +459,9 @@ def main():
     author_refs = spark_df.filter(spark_df.ref_type == "author")
     print(author_refs.show())
 
-
-
     # test = spark_df.select('ref_titles').take(5)
     # print(type(test[0][0]))
     # print(test)
-
-    
 
     # example_list = title_refs.iloc[0, -2]
     # print(f"Example list: {example_list}")

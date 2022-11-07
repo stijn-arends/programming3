@@ -2,42 +2,42 @@
 
 """Module"""
 
-__author__ = 'Stijn Arends'
-__version__ = 'v.01'
+__author__ = "Stijn Arends"
+__version__ = "v.01"
 
 # IMPORTS
-import time
-import pickle
-import os
-import sys
-from typing import Any
 import argparse
+import os
+import pickle
+import sys
+import time
 from pathlib import Path
-import networkx as nx
+from typing import Any
 
+import networkx as nx
 import pyspark
+import pyspark.sql.functions as F
 from pyspark import SparkContext
 from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StructField, StringType, ArrayType, DateType
+from pyspark.sql.types import ArrayType, DateType, StringType, StructField, StructType
 
-import pyspark.sql.functions as F
-import pyspark.sql.types as T
-
-SCHEMA = StructType() \
-    .add('pmid', StringType()) \
-    .add('language', StringType()) \
-    .add('author', StringType()) \
-    .add('title', StringType()) \
-    .add('co_authors', ArrayType(StringType())) \
-    .add('journal', StringType()) \
-    .add('key_words', ArrayType(StringType())) \
-    .add('doi', StringType()) \
-    .add('pmc', StringType()) \
-    .add('publish_date', DateType()) \
-    .add('ref_ids', ArrayType(StringType())) \
-    .add("ref_authors", ArrayType(ArrayType(StringType()))) \
-    .add('ref_titles', ArrayType(StringType())) \
-    .add('ref_type', StringType())
+SCHEMA = (
+    StructType()
+    .add("pmid", StringType())
+    .add("language", StringType())
+    .add("author", StringType())
+    .add("title", StringType())
+    .add("co_authors", ArrayType(StringType()))
+    .add("journal", StringType())
+    .add("key_words", ArrayType(StringType()))
+    .add("doi", StringType())
+    .add("pmc", StringType())
+    .add("publish_date", DateType())
+    .add("ref_ids", ArrayType(StringType()))
+    .add("ref_authors", ArrayType(ArrayType(StringType())))
+    .add("ref_titles", ArrayType(StringType()))
+    .add("ref_type", StringType())
+)
 
 
 class ArgumentParser:
@@ -63,27 +63,48 @@ class ArgumentParser:
         --------
         parser - ArgumentParser
         """
-        parser = argparse.ArgumentParser(prog=os.path.basename(__file__),
+        parser = argparse.ArgumentParser(
+            prog=os.path.basename(__file__),
             description="Python script creates graphs.",
-            epilog="Contact: stijnarend@live.nl")
+            epilog="Contact: stijnarend@live.nl",
+        )
 
         parser.version = __version__
-        parser.add_argument("-d", '--data_dir', action="store",
-                    dest="d", required=True, type=str,
-                    help="Location of the parsed pubmed data in json format.")
+        parser.add_argument(
+            "-d",
+            "--data_dir",
+            action="store",
+            dest="d",
+            required=True,
+            type=str,
+            help="Location of the parsed pubmed data in json format.",
+        )
 
-        parser.add_argument("-n", action="store",
-                           dest="n", required=False, type=int, default=2000,
-                           help="Number of rows to take from the entire data frame.")
+        parser.add_argument(
+            "-n",
+            action="store",
+            dest="n",
+            required=False,
+            type=int,
+            default=2000,
+            help="Number of rows to take from the entire data frame.",
+        )
 
-        parser.add_argument('-o', '--output', action="store",
-                    dest="o", required=True,
-                    help="Location of output directory.")
+        parser.add_argument(
+            "-o",
+            "--output",
+            action="store",
+            dest="o",
+            required=True,
+            help="Location of output directory.",
+        )
 
-        parser.add_argument('-v',
-            '--version',
-            help='Displays the version number of the script and exitst',
-            action='version')
+        parser.add_argument(
+            "-v",
+            "--version",
+            help="Displays the version number of the script and exitst",
+            action="version",
+        )
 
         return parser
 
@@ -108,7 +129,6 @@ class ArgumentParser:
         return value
 
 
-
 def create_pyspark_df(file_path: str):
     """
     Create a pyspark dataframe from multiple json files.
@@ -117,7 +137,7 @@ def create_pyspark_df(file_path: str):
     -----------
     file_path - str
         Directory containg json files used to create dataframe
-    
+
     :returns
     --------
     df - pyspark DataFrame
@@ -125,44 +145,47 @@ def create_pyspark_df(file_path: str):
     sc - SparkContext
     spark - SparkSession
     """
-    conf = pyspark.SparkConf().setAll([('spark.executor.memory', '128g'),
-                                ('spark.master', 'local[16]'),
-                                ('spark.driver.memory', '128g')])
-    sc = SparkContext(conf=conf)
-    sc.getConf().getAll()
-    spark = SparkSession(sc)
-    df = spark.read.option("multiline","true").schema(SCHEMA) \
-        .json(file_path)
-        
-    return df, sc, spark
+    conf = pyspark.SparkConf().setAll(
+        [
+            ("spark.executor.memory", "128g"),
+            ("spark.master", "local[16]"),
+            ("spark.driver.memory", "128g"),
+        ]
+    )
+    spark_context = SparkContext(conf=conf)
+    spark_context.getConf().getAll()
+    spark = SparkSession(spark_context)
+    spark_df = spark.read.option("multiline", "true").schema(SCHEMA).json(file_path)
+
+    return spark_df, spark_context, spark
 
 
-def create_adjacency_list(x, max_size):
+def create_adjacency_list(row, max_size):
     """
     Helper function to create an adjacency list from
     a pyspark dataframe.
 
     :parameters
     -----------
-    x - row
+    row - row
         A row of a dataframe
     max_size - int
-        The maximum number of references used
+        The marowimum number of references used
 
     :returns
     --------
     result - Tuple[str]
         Tuple of PMIDs and None values.
     """
-    id = x[0]
+    pmid = row[0]
     vals = [None for _ in range(max_size)]
-    for i in range(len(x['ref_ids'])):
-        vals[i] = x['ref_ids'][i]
+    for i in range(len(row["ref_ids"])):
+        vals[i] = row["ref_ids"][i]
 
-    return (id, *vals)
+    return (pmid, *vals)
 
 
-def get_data_all_articles(spark_df, adjlist_random_pd, sc):
+def get_data_all_articles(spark_df, adjlist_random_pd, spark_context):
     """
     Get the data for all the PMIDs from the pyspark dataframe this includes
     the orignal PMID that were acquired by taking the random sample of the entire dataframe
@@ -186,12 +209,15 @@ def get_data_all_articles(spark_df, adjlist_random_pd, sc):
         articles = adjlist_random_pd[adjlist_random_pd.iloc[:, i].notnull()].iloc[:, i]
         all_articles.extend(articles.values)
 
-    article_ids_broadcast = sc.broadcast(all_articles)
-    articles_of_interest = spark_df.filter(F.col('pmid').isin(article_ids_broadcast.value))
+    article_ids_broadcast = spark_context.broadcast(all_articles)
+    articles_of_interest = spark_df.filter(
+        F.col("pmid").isin(article_ids_broadcast.value)
+    )
     articles_interest_pd = articles_of_interest.toPandas()
-    articles_interest_pd.drop_duplicates(subset=["pmid"], keep='last', inplace=True)
+    articles_interest_pd.drop_duplicates(subset=["pmid"], keep="last", inplace=True)
 
     return articles_interest_pd
+
 
 def to_pickle(data, out_file) -> None:
     """
@@ -204,16 +230,17 @@ def to_pickle(data, out_file) -> None:
     out_file - Path
         Location of output file
     """
-    with open(out_file, 'wb') as file_handler:
+    with open(out_file, "wb") as file_handler:
         pickle.dump(data, file_handler)
+
 
 def main():
     """main"""
     start_time = time.time()
     cla_parser = ArgumentParser()
-    data_dir = cla_parser.get_argument('d')
-    n_samples = cla_parser.get_argument('n')
-    out_dir = Path(cla_parser.get_argument('o'))
+    data_dir = cla_parser.get_argument("d")
+    n_samples = cla_parser.get_argument("n")
+    out_dir = Path(cla_parser.get_argument("o"))
     out_adjlist = out_dir / "adjlist_subset_data_4.csv"
     out_graph = out_dir / "citation_subgraph_4.pkl"
     out_attributes = out_dir / "attributes_subgraph_4.pkl"
@@ -221,33 +248,46 @@ def main():
     json_files = data_dir + "*.json"
 
     print("Reading data:\n")
-    spark_df, sc, spark = create_pyspark_df(json_files)
+    spark_df, spark_context, spark = create_pyspark_df(json_files)
 
     # Exract data with PMID as references
     pmid_refs = spark_df.filter(spark_df.ref_type == "pmid")
 
     # Take a random sample from the dataframe
-    random_df = spark.createDataFrame(pmid_refs.rdd.takeSample(False, n_samples), schema=SCHEMA)
+    random_df = spark.createDataFrame(
+        pmid_refs.rdd.takeSample(False, n_samples), schema=SCHEMA
+    )
 
     # Calculate the max number of references
-    max_size_random = random_df.select(F.size('ref_ids')).agg({'size(ref_ids)': 'max'}).take(1)[0][0]
+    max_size_random = (
+        random_df.select(F.size("ref_ids")).agg({"size(ref_ids)": "max"}).take(1)[0][0]
+    )
 
     # Create adjacency list from the random sampled data frame
-    scheme_adjlist = StructType([StructField(f"col{i+1}", StringType(), True) for i in range(max_size_random + 1)])
-    adjlist_random = random_df.rdd.map(lambda x: create_adjacency_list(x, max_size_random)).toDF(schema=scheme_adjlist)
+    scheme_adjlist = StructType(
+        [
+            StructField(f"col{i+1}", StringType(), True)
+            for i in range(max_size_random + 1)
+        ]
+    )
+    adjlist_random = random_df.rdd.map(
+        lambda x: create_adjacency_list(x, max_size_random)
+    ).toDF(schema=scheme_adjlist)
 
     adjlist_random_pd = adjlist_random.toPandas()
 
     # Get the data from the referenced PMID as well as the source PMIDs.
-    articles_interest_pd = get_data_all_articles(spark_df, adjlist_random_pd, sc)
+    articles_interest_pd = get_data_all_articles(
+        spark_df, adjlist_random_pd, spark_context
+    )
 
     # Create a dictionary of node attributes
-    node_attributes = articles_interest_pd.set_index('pmid').to_dict('index')
+    node_attributes = articles_interest_pd.set_index("pmid").to_dict("index")
 
     # Write out adjacency list and read it in again to create a graph
-    adjlist_random_pd.to_csv(out_adjlist, sep=' ', header=False, index=False)
+    adjlist_random_pd.to_csv(out_adjlist, sep=" ", header=False, index=False)
 
-    graph = nx.read_adjlist(out_adjlist, create_using=nx.DiGraph()) 
+    graph = nx.read_adjlist(out_adjlist, create_using=nx.DiGraph())
 
     nx.set_node_attributes(graph, node_attributes)
     to_pickle(graph, out_graph)
@@ -261,5 +301,8 @@ def main():
     print(f"\n---- Time: {days}:{elapsed} ----")
 
 
+# python create_subset_graph.py -d /commons/dsls/dsph/2022/final_parsed_articles/
+# -n 2000 -o /commons/dsls/dsph/2022/graph_data/
+
 if __name__ == "__main__":
-    main() # python create_subset_graph.py -d /commons/dsls/dsph/2022/final_parsed_articles/ -n 2000 -o /commons/dsls/dsph/2022/graph_data/
+    main()

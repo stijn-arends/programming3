@@ -9,16 +9,15 @@ and saving it in a pickle file.
 """
 
 import multiprocessing as mp
+import pickle
 import time
 from pathlib import Path
 from typing import Any
-import pickle
-from Bio import Entrez
 
 from arg_parser import ArgumentParser
-from server_side import ServerSide
+from Bio import Entrez
 from client_side import ClientSide
-
+from server_side import ServerSide
 
 __author__ = "Stijn Arends"
 __version__ = "v0.1"
@@ -26,7 +25,7 @@ __data__ = "14-5-2022"
 
 
 Entrez.email = "stijnarends@live.nl"
-Entrez.api_key = '9f94f8d674e1918a47cfa8afc303838b0408'
+Entrez.api_key = "9f94f8d674e1918a47cfa8afc303838b0408"
 
 
 class ArticleNotFound(Exception):
@@ -37,7 +36,9 @@ class ArticleNotFound(Exception):
     """
 
     def __init__(self, pmid: int) -> None:
-        self.message = f"pmid: {pmid}, is not a valid ID or it does not contain any references."
+        self.message = (
+            f"pmid: {pmid}, is not a valid ID or it does not contain any references."
+        )
         super().__init__(self.message)
 
 
@@ -46,7 +47,7 @@ class DownloadPubmedInfo:
     Download a number of papers that are referenced in a pubmed article.
     """
 
-    def __init__(self, n_articles:int, out_path: Path) -> None:
+    def __init__(self, n_articles: int, out_path: Path) -> None:
         self.n_articles = n_articles
         self.out_path = out_path
         self.make_data_dir(out_path)
@@ -76,10 +77,9 @@ class DownloadPubmedInfo:
         references - list
             List of pubmed IDs
         """
-        results = Entrez.read(Entrez.elink(dbfrom="pubmed",
-                                db="pmc",
-                                LinkName="pubmed_pmc_refs",
-                                id=pmid))
+        results = Entrez.read(
+            Entrez.elink(dbfrom="pubmed", db="pmc", LinkName="pubmed_pmc_refs", id=pmid)
+        )
 
         if not results[0]["LinkSetDb"]:
             raise ArticleNotFound(pmid)
@@ -88,7 +88,7 @@ class DownloadPubmedInfo:
 
         return references
 
-    def get_authors(self, pmid:int) -> None:
+    def get_authors(self, pmid: int) -> None:
         """
         Get the names of the authors of a paper.
 
@@ -100,10 +100,10 @@ class DownloadPubmedInfo:
         try:
             with Entrez.esummary(db="pubmed", id=pmid) as handle:
                 info = Entrez.read(handle)
-                authors = tuple(info[0]['AuthorList'])
+                authors = tuple(info[0]["AuthorList"])
         except RuntimeError:
             print(f"Nothing found for pumed ID: {pmid}")
-            authors = (None)
+            authors = None
 
         output_file = self.out_path / f"{pmid}.authors.pickle"
         self.write_pickle(authors, output_file)
@@ -120,7 +120,7 @@ class DownloadPubmedInfo:
         file - Path
             Name and location of the file to write to
         """
-        with open(file, 'wb') as file_handle:
+        with open(file, "wb") as file_handle:
             pickle.dump(data, file_handle)
 
     def download_paper(self, pmid: int) -> None:
@@ -136,7 +136,7 @@ class DownloadPubmedInfo:
         paper = Entrez.efetch(db="pmc", id=pmid, rettype="XML", retmode="text").read()
         self.write_out_paper(paper, pmid)
 
-    def write_out_paper(self, data:str, pmid:str) -> None:
+    def write_out_paper(self, data: str, pmid: str) -> None:
         """
         Write out a paper in XML format.
 
@@ -147,7 +147,7 @@ class DownloadPubmedInfo:
         pmid - int
             Pubmed ID
         """
-        with open(self.out_path / f'{pmid}.xml', 'wb') as file:
+        with open(self.out_path / f"{pmid}.xml", "wb") as file:
             file.write(data)
 
 
@@ -158,18 +158,19 @@ def main():
     start_time = time.time()
     # Get passed arguments
     cla_parser = ArgumentParser()
-    pmid = cla_parser.get_argument('pubmed_id')
-    n_articles= cla_parser.get_argument('a')
+    pmid = cla_parser.get_argument("pubmed_id")
+    n_articles = cla_parser.get_argument("a")
 
-    n_peons = cla_parser.get_argument('n')
-    port = cla_parser.get_argument('p')
-    host = cla_parser.get_argument('host')
+    n_peons = cla_parser.get_argument("n")
+    port = cla_parser.get_argument("p")
+    host = cla_parser.get_argument("host")
 
-    server_mode = cla_parser.get_argument('s')
-    client_mode = cla_parser.get_argument('c')
+    server_mode = cla_parser.get_argument("s")
+    client_mode = cla_parser.get_argument("c")
 
-    download_pmed = DownloadPubmedInfo(n_articles=n_articles,
-        out_path=Path(__file__).parent.absolute() / 'output')
+    download_pmed = DownloadPubmedInfo(
+        n_articles=n_articles, out_path=Path(__file__).parent.absolute() / "output"
+    )
 
     ref_ids = download_pmed.get_id_references(pmid)
 
@@ -178,21 +179,31 @@ def main():
         n_articles = len(ref_ids)
 
     if server_mode:
-        server_side = ServerSide(ip_adress=host, port=port,
-            auth_key=b'whathasitgotinitspocketsesss?',
-            poison_pill="MEMENTOMORI")
-        server = mp.Process(target=server_side.run_server, args=([download_pmed.download_paper,
-            download_pmed.get_authors],
-            ref_ids[:n_articles]))
+        server_side = ServerSide(
+            ip_adress=host,
+            port=port,
+            auth_key=b"whathasitgotinitspocketsesss?",
+            poison_pill="MEMENTOMORI",
+        )
+        server = mp.Process(
+            target=server_side.run_server,
+            args=(
+                [download_pmed.download_paper, download_pmed.get_authors],
+                ref_ids[:n_articles],
+            ),
+        )
         server.start()
         time.sleep(1)
         server.join()
 
     if client_mode:
-        print('Selected client mode.')
-        client_side = ClientSide(ip_adress=host, port=port,
-            auth_key=b'whathasitgotinitspocketsesss?',
-            poison_pill="MEMENTOMORI")
+        print("Selected client mode.")
+        client_side = ClientSide(
+            ip_adress=host,
+            port=port,
+            auth_key=b"whathasitgotinitspocketsesss?",
+            poison_pill="MEMENTOMORI",
+        )
         client = mp.Process(target=client_side.run_client, args=(n_peons,))
         client.start()
         client.join()
@@ -201,4 +212,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() # 30049270
+    main()  # 30049270
