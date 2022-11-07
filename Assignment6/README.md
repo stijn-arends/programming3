@@ -44,7 +44,7 @@ This project is divided into three different sections:
 3. Analyze data using pyspark and networkx
 
 ### 1. Processing the data
-<details>
+<details open>
   <summary>info processing</summary>
 
 The PubMed data (XML format) was processed in parallel using the built-in python library [multiprocessing](https://docs.python.org/3/library/multiprocessing.html). The [pubmed_parser](src/pubmed_parser/) and [parallel_computing](src/parallel_computing/) directories contain the code for parsing the data and setting up a server and client for processing the data in parallel. 
@@ -87,7 +87,7 @@ python src/main.py -p 4235 --host assemblix2019 -c -n 2
 </details>
 
 ### 2. Creating graphs
-<details>
+<details open>
   <summary>info creating graph</summary>
 The next step is to save the processed data into a graph so that it can be properly analyzed. The scripts associated with creating the graphs are stored in the [graph](src/graph/) directory.
 
@@ -143,7 +143,7 @@ Finally, there is alo an option to take a random subset of the data to produce a
 </details>
 
 ### 3. Analyze data
-<details>
+<details open>
   <summary>info analyze data</summary>
 The final step is to analyze and visualize the data using pyspark and networkx. The data can be analyzed using the [analyze_data.py](src/analyze_data.py) script which uses the parsed PubMed data (json format) and the networkx graph to answer the questions, it also stores the results in a CSV file. 
 
