@@ -23,6 +23,7 @@ class ProcessIntrePro:
         self.spark = spark
         self.data_file = data_file
         self.spark_df = self.create_df(data_file)
+        self.spark_df.show()
         self.filter_df(self.spark_df)
 
     def create_df(self, file):
@@ -97,7 +98,7 @@ class ProcessIntrePro:
             (self.spark_df.GO != "-") & (~self.spark_df.GO.contains("|"))
         )
 
-        gene_onts = self.spark_df.select(f.explode(f.split(self.spark_df.GO, "\|")))
+        gene_onts = self.spark_df.select(f.explode(f.split(self.spark_df.GO, r"\|")))
         extra_gos = gene_onts.filter(gene_onts.col != "-")  # .show()
 
         all_go_terms = gos_first.union(extra_gos)
@@ -175,7 +176,7 @@ class ProcessIntrePro:
         res_top_10_words = (
             self.spark_df.select(
                 f.explode(
-                    f.split(self.spark_df.interpro_annot_description, "\s+|,|-|\/")
+                    f.split(self.spark_df.interpro_annot_description, r"\s+|,|-|\/")
                 )
             )
             .filter(f.col("col") != "")
@@ -199,7 +200,7 @@ class ProcessIntrePro:
         res_least_10_words = (
             self.spark_df.select(
                 f.explode(
-                    f.split(self.spark_df.interpro_annot_description, "\s+|,|-|\/")
+                    f.split(self.spark_df.interpro_annot_description, r"\s+|,|-|\/")
                 )
             )
             .filter(f.col("col") != "")
@@ -226,7 +227,7 @@ class ProcessIntrePro:
         res_top_10_words_large = (
             large_features.select(
                 f.explode(
-                    f.split(large_features.interpro_annot_description, "\s+|,|-|\/")
+                    f.split(large_features.interpro_annot_description, r"\s+|,|-|\/")
                 )
             )
             .filter(f.col("col") != "")

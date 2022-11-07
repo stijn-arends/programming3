@@ -1,121 +1,131 @@
 question,answer,explain
 1,9703,"== Physical Plan ==
-*(2) HashAggregate(keys=[interpro_annot_accession#57], functions=[])
-+- Exchange hashpartitioning(interpro_annot_accession#57, 200), ENSURE_REQUIREMENTS, [id=#40]
-   +- *(1) HashAggregate(keys=[interpro_annot_accession#57], functions=[])
-      +- *(1) Project [_c11#27 AS interpro_annot_accession#57]
-         +- *(1) Filter (isnotnull(_c11#27) AND NOT (_c11#27 = -))
-            +- FileScan csv [_c11#27] Batched: false, DataFilters: [isnotnull(_c11#27), NOT (_c11#27 = -)], Format: CSV, Location: InMemoryFileIndex[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), Not(EqualTo(_c11,-))], ReadSchema: struct<_c11:string>
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[interpro_annot_accession#58], functions=[])
+   +- Exchange hashpartitioning(interpro_annot_accession#58, 200), ENSURE_REQUIREMENTS, [id=#46]
+      +- HashAggregate(keys=[interpro_annot_accession#58], functions=[])
+         +- Project [_c11#28 AS interpro_annot_accession#58]
+            +- Filter (isnotnull(_c11#28) AND NOT (_c11#28 = -))
+               +- FileScan csv [_c11#28] Batched: false, DataFilters: [isnotnull(_c11#28), NOT (_c11#28 = -)], Format: CSV, Location: InMemoryFileIndex(1 paths)[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), Not(EqualTo(_c11,-))], ReadSchema: struct<_c11:string>
 
 "
 2,5.775124333258208,"== Physical Plan ==
-*(3) HashAggregate(keys=[], functions=[avg(count(interpro_annot_accession)#118L)])
-+- Exchange SinglePartition, ENSURE_REQUIREMENTS, [id=#122]
-   +- *(2) HashAggregate(keys=[], functions=[partial_avg(count(interpro_annot_accession)#118L)])
-      +- *(2) HashAggregate(keys=[protein_accession#46], functions=[count(interpro_annot_accession#57)])
-         +- Exchange hashpartitioning(protein_accession#46, 200), ENSURE_REQUIREMENTS, [id=#117]
-            +- *(1) HashAggregate(keys=[protein_accession#46], functions=[partial_count(interpro_annot_accession#57)])
-               +- *(1) Project [_c0#16 AS protein_accession#46, _c11#27 AS interpro_annot_accession#57]
-                  +- *(1) Filter (isnotnull(_c11#27) AND NOT (_c11#27 = -))
-                     +- FileScan csv [_c0#16,_c11#27] Batched: false, DataFilters: [isnotnull(_c11#27), NOT (_c11#27 = -)], Format: CSV, Location: InMemoryFileIndex[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), Not(EqualTo(_c11,-))], ReadSchema: struct<_c0:string,_c11:string>
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[], functions=[avg(count(interpro_annot_accession)#196L)])
+   +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [id=#173]
+      +- HashAggregate(keys=[], functions=[partial_avg(count(interpro_annot_accession)#196L)])
+         +- HashAggregate(keys=[protein_accession#47], functions=[count(interpro_annot_accession#58)])
+            +- Exchange hashpartitioning(protein_accession#47, 200), ENSURE_REQUIREMENTS, [id=#169]
+               +- HashAggregate(keys=[protein_accession#47], functions=[partial_count(interpro_annot_accession#58)])
+                  +- Project [_c0#17 AS protein_accession#47, _c11#28 AS interpro_annot_accession#58]
+                     +- Filter (isnotnull(_c11#28) AND NOT (_c11#28 = -))
+                        +- FileScan csv [_c0#17,_c11#28] Batched: false, DataFilters: [isnotnull(_c11#28), NOT (_c11#28 = -)], Format: CSV, Location: InMemoryFileIndex(1 paths)[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), Not(EqualTo(_c11,-))], ReadSchema: struct<_c0:string,_c11:string>
 
 "
 3,GO:0005524,"== Physical Plan ==
-*(6) Sort [count#140L DESC NULLS LAST], true, 0
-+- Exchange rangepartitioning(count#140L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [id=#189]
-   +- *(5) HashAggregate(keys=[GO#59], functions=[count(1)])
-      +- Exchange hashpartitioning(GO#59, 200), ENSURE_REQUIREMENTS, [id=#185]
-         +- *(4) HashAggregate(keys=[GO#59], functions=[partial_count(1)])
-            +- Union
-               :- *(1) Project [_c13#29 AS GO#59]
-               :  +- *(1) Filter ((((isnotnull(_c11#27) AND isnotnull(_c13#29)) AND NOT (_c11#27 = -)) AND NOT (_c13#29 = -)) AND NOT Contains(_c13#29, |))
-               :     +- FileScan csv [_c11#27,_c13#29] Batched: false, DataFilters: [isnotnull(_c11#27), isnotnull(_c13#29), NOT (_c11#27 = -), NOT (_c13#29 = -), NOT Contains(_c13#..., Format: CSV, Location: InMemoryFileIndex[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), IsNotNull(_c13), Not(EqualTo(_c11,-)), Not(EqualTo(_c13,-)), Not(StringContains..., ReadSchema: struct<_c11:string,_c13:string>
-               +- *(3) Filter (isnotnull(col#135) AND NOT (col#135 = -))
-                  +- Generate explode(split(GO#59, \|, -1)), false, [col#135]
-                     +- *(2) Project [_c13#29 AS GO#59]
-                        +- *(2) Filter ((((isnotnull(_c11#27) AND NOT (_c11#27 = -)) AND isnotnull(_c13#29)) AND (size(split(_c13#29, \|, -1), true) > 0)) AND isnotnull(split(_c13#29, \|, -1)))
-                           +- FileScan csv [_c11#27,_c13#29] Batched: false, DataFilters: [isnotnull(_c11#27), NOT (_c11#27 = -), isnotnull(_c13#29), (size(split(_c13#29, \|, -1), true) >..., Format: CSV, Location: InMemoryFileIndex[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), Not(EqualTo(_c11,-)), IsNotNull(_c13)], ReadSchema: struct<_c11:string,_c13:string>
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [count#244L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(count#244L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [id=#288]
+      +- HashAggregate(keys=[GO#60], functions=[count(1)])
+         +- Exchange hashpartitioning(GO#60, 200), ENSURE_REQUIREMENTS, [id=#285]
+            +- HashAggregate(keys=[GO#60], functions=[partial_count(1)])
+               +- Union
+                  :- Project [_c13#30 AS GO#60]
+                  :  +- Filter ((((isnotnull(_c11#28) AND isnotnull(_c13#30)) AND NOT (_c11#28 = -)) AND NOT (_c13#30 = -)) AND NOT Contains(_c13#30, |))
+                  :     +- FileScan csv [_c11#28,_c13#30] Batched: false, DataFilters: [isnotnull(_c11#28), isnotnull(_c13#30), NOT (_c11#28 = -), NOT (_c13#30 = -), NOT Contains(_c13#..., Format: CSV, Location: InMemoryFileIndex(1 paths)[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), IsNotNull(_c13), Not(EqualTo(_c11,-)), Not(EqualTo(_c13,-)), Not(StringContains..., ReadSchema: struct<_c11:string,_c13:string>
+                  +- Filter NOT (col#223 = -)
+                     +- Generate explode(split(GO#60, \|, -1)), false, [col#223]
+                        +- Project [_c13#238 AS GO#60]
+                           +- Filter (isnotnull(_c11#236) AND NOT (_c11#236 = -))
+                              +- FileScan csv [_c11#236,_c13#238] Batched: false, DataFilters: [isnotnull(_c11#236), NOT (_c11#236 = -)], Format: CSV, Location: InMemoryFileIndex(1 paths)[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), Not(EqualTo(_c11,-))], ReadSchema: struct<_c11:string,_c13:string>
 
 "
-4,184.32910682354284,"== Physical Plan ==
-*(3) HashAggregate(keys=[], functions=[avg(avg(length_feature)#166)])
-+- Exchange SinglePartition, ENSURE_REQUIREMENTS, [id=#324]
-   +- *(2) HashAggregate(keys=[], functions=[partial_avg(avg(length_feature)#166)])
-      +- *(2) HashAggregate(keys=[interpro_annot_accession#57], functions=[avg(cast(length_feature#76 as bigint))])
-         +- Exchange hashpartitioning(interpro_annot_accession#57, 200), ENSURE_REQUIREMENTS, [id=#319]
-            +- *(1) HashAggregate(keys=[interpro_annot_accession#57], functions=[partial_avg(cast(length_feature#76 as bigint))])
-               +- *(1) Project [_c11#27 AS interpro_annot_accession#57, (_c7#23 - _c6#22) AS length_feature#76]
-                  +- *(1) Filter (isnotnull(_c11#27) AND NOT (_c11#27 = -))
-                     +- FileScan csv [_c6#22,_c7#23,_c11#27] Batched: false, DataFilters: [isnotnull(_c11#27), NOT (_c11#27 = -)], Format: CSV, Location: InMemoryFileIndex[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), Not(EqualTo(_c11,-))], ReadSchema: struct<_c6:int,_c7:int,_c11:string>
+4,184.3291068235429,"== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[], functions=[avg(avg(length_feature)#270)])
+   +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [id=#427]
+      +- HashAggregate(keys=[], functions=[partial_avg(avg(length_feature)#270)])
+         +- HashAggregate(keys=[interpro_annot_accession#58], functions=[avg(length_feature#154)])
+            +- Exchange hashpartitioning(interpro_annot_accession#58, 200), ENSURE_REQUIREMENTS, [id=#423]
+               +- HashAggregate(keys=[interpro_annot_accession#58], functions=[partial_avg(length_feature#154)])
+                  +- Project [_c11#28 AS interpro_annot_accession#58, (_c7#24 - _c6#23) AS length_feature#154]
+                     +- Filter (isnotnull(_c11#28) AND NOT (_c11#28 = -))
+                        +- FileScan csv [_c6#23,_c7#24,_c11#28] Batched: false, DataFilters: [isnotnull(_c11#28), NOT (_c11#28 = -)], Format: CSV, Location: InMemoryFileIndex(1 paths)[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), Not(EqualTo(_c11,-))], ReadSchema: struct<_c6:int,_c7:int,_c11:string>
 
 "
 5,"['IPR027417', 'IPR002347', 'IPR003439', 'IPR036388', 'IPR036259', 'IPR003593', 'IPR036390', 'IPR036291', 'IPR000515', 'IPR001789']","== Physical Plan ==
-*(3) Sort [count#202L DESC NULLS LAST], true, 0
-+- Exchange rangepartitioning(count#202L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [id=#360]
-   +- *(2) HashAggregate(keys=[interpro_annot_accession#57], functions=[count(1)])
-      +- Exchange hashpartitioning(interpro_annot_accession#57, 200), ENSURE_REQUIREMENTS, [id=#356]
-         +- *(1) HashAggregate(keys=[interpro_annot_accession#57], functions=[partial_count(1)])
-            +- *(1) Project [_c11#27 AS interpro_annot_accession#57]
-               +- *(1) Filter (isnotnull(_c11#27) AND NOT (_c11#27 = -))
-                  +- FileScan csv [_c11#27] Batched: false, DataFilters: [isnotnull(_c11#27), NOT (_c11#27 = -)], Format: CSV, Location: InMemoryFileIndex[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), Not(EqualTo(_c11,-))], ReadSchema: struct<_c11:string>
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [count#320L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(count#320L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [id=#522]
+      +- HashAggregate(keys=[interpro_annot_accession#58], functions=[count(1)])
+         +- Exchange hashpartitioning(interpro_annot_accession#58, 200), ENSURE_REQUIREMENTS, [id=#519]
+            +- HashAggregate(keys=[interpro_annot_accession#58], functions=[partial_count(1)])
+               +- Project [_c11#28 AS interpro_annot_accession#58]
+                  +- Filter (isnotnull(_c11#28) AND NOT (_c11#28 = -))
+                     +- FileScan csv [_c11#28] Batched: false, DataFilters: [isnotnull(_c11#28), NOT (_c11#28 = -)], Format: CSV, Location: InMemoryFileIndex(1 paths)[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), Not(EqualTo(_c11,-))], ReadSchema: struct<_c11:string>
 
 "
 6,"['IPR027417', 'IPR036259', 'IPR020846', 'IPR029058', 'IPR036388', 'IPR000182', 'IPR013785', 'IPR036291', 'IPR029063', 'IPR015424']","== Physical Plan ==
-*(3) Sort [count#211L DESC NULLS LAST], true, 0
-+- Exchange rangepartitioning(count#211L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [id=#443]
-   +- *(2) HashAggregate(keys=[interpro_annot_accession#57], functions=[count(1)])
-      +- Exchange hashpartitioning(interpro_annot_accession#57, 200), ENSURE_REQUIREMENTS, [id=#439]
-         +- *(1) HashAggregate(keys=[interpro_annot_accession#57], functions=[partial_count(1)])
-            +- *(1) Project [_c11#27 AS interpro_annot_accession#57]
-               +- *(1) Filter (((((isnotnull(_c11#27) AND isnotnull(_c7#23)) AND isnotnull(_c6#22)) AND isnotnull(_c2#18)) AND NOT (_c11#27 = -)) AND (cast((_c7#23 - _c6#22) as double) > ((cast(_c2#18 as double) / 100.0) * 90.0)))
-                  +- FileScan csv [_c2#18,_c6#22,_c7#23,_c11#27] Batched: false, DataFilters: [isnotnull(_c11#27), isnotnull(_c7#23), isnotnull(_c6#22), isnotnull(_c2#18), NOT (_c11#27 = -), ..., Format: CSV, Location: InMemoryFileIndex[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), IsNotNull(_c7), IsNotNull(_c6), IsNotNull(_c2), Not(EqualTo(_c11,-))], ReadSchema: struct<_c2:int,_c6:int,_c7:int,_c11:string>
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [count#329L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(count#329L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [id=#605]
+      +- HashAggregate(keys=[interpro_annot_accession#58], functions=[count(1)])
+         +- Exchange hashpartitioning(interpro_annot_accession#58, 200), ENSURE_REQUIREMENTS, [id=#602]
+            +- HashAggregate(keys=[interpro_annot_accession#58], functions=[partial_count(1)])
+               +- Project [_c11#28 AS interpro_annot_accession#58]
+                  +- Filter (((((isnotnull(_c11#28) AND isnotnull(_c7#24)) AND isnotnull(_c6#23)) AND isnotnull(_c2#19)) AND NOT (_c11#28 = -)) AND (cast((_c7#24 - _c6#23) as double) > ((cast(_c2#19 as double) / 100.0) * 90.0)))
+                     +- FileScan csv [_c2#19,_c6#23,_c7#24,_c11#28] Batched: false, DataFilters: [isnotnull(_c11#28), isnotnull(_c7#24), isnotnull(_c6#23), isnotnull(_c2#19), NOT (_c11#28 = -), ..., Format: CSV, Location: InMemoryFileIndex(1 paths)[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), IsNotNull(_c7), IsNotNull(_c6), IsNotNull(_c2), Not(EqualTo(_c11,-))], ReadSchema: struct<_c2:int,_c6:int,_c7:int,_c11:string>
 
 "
 7,"['domain', 'like', 'superfamily', 'protein', 'binding', 'terminal', 'type', 'C', 'DNA', 'hydrolase']","== Physical Plan ==
-*(4) Sort [count#224L DESC NULLS LAST], true, 0
-+- Exchange rangepartitioning(count#224L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [id=#538]
-   +- *(3) HashAggregate(keys=[col#220], functions=[count(1)])
-      +- Exchange hashpartitioning(col#220, 200), ENSURE_REQUIREMENTS, [id=#534]
-         +- *(2) HashAggregate(keys=[col#220], functions=[partial_count(1)])
-            +- *(2) Filter (isnotnull(col#220) AND NOT (col#220 = ))
-               +- Generate explode(split(interpro_annot_description#58, \s+|,|-|\/, -1)), false, [col#220]
-                  +- *(1) Project [_c12#28 AS interpro_annot_description#58]
-                     +- *(1) Filter ((((isnotnull(_c11#27) AND NOT (_c11#27 = -)) AND isnotnull(_c12#28)) AND (size(split(_c12#28, \s+|,|-|\/, -1), true) > 0)) AND isnotnull(split(_c12#28, \s+|,|-|\/, -1)))
-                        +- FileScan csv [_c11#27,_c12#28] Batched: false, DataFilters: [isnotnull(_c11#27), NOT (_c11#27 = -), isnotnull(_c12#28), (size(split(_c12#28, \s+|,|-|\/, -1),..., Format: CSV, Location: InMemoryFileIndex[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), Not(EqualTo(_c11,-)), IsNotNull(_c12)], ReadSchema: struct<_c11:string,_c12:string>
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [count#342L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(count#342L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [id=#696]
+      +- HashAggregate(keys=[col#338], functions=[count(1)])
+         +- Exchange hashpartitioning(col#338, 200), ENSURE_REQUIREMENTS, [id=#693]
+            +- HashAggregate(keys=[col#338], functions=[partial_count(1)])
+               +- Filter NOT (col#338 = )
+                  +- Generate explode(split(interpro_annot_description#59, \s+|,|-|\/, -1)), false, [col#338]
+                     +- Project [_c12#29 AS interpro_annot_description#59]
+                        +- Filter (isnotnull(_c11#28) AND NOT (_c11#28 = -))
+                           +- FileScan csv [_c11#28,_c12#29] Batched: false, DataFilters: [isnotnull(_c11#28), NOT (_c11#28 = -)], Format: CSV, Location: InMemoryFileIndex(1 paths)[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), Not(EqualTo(_c11,-))], ReadSchema: struct<_c11:string,_c12:string>
 
 "
-8,"['Cthe_2751', 'Mobilization', 'CHP02646', 'Neurolysin', 'NifC', 'DUF2321', 'MASE3', 'ketoisomerase', 'HpaII', 'DUF3181']","== Physical Plan ==
-*(4) Sort [count#235L ASC NULLS FIRST], true, 0
-+- Exchange rangepartitioning(count#235L ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [id=#651]
-   +- *(3) HashAggregate(keys=[col#231], functions=[count(1)])
-      +- Exchange hashpartitioning(col#231, 200), ENSURE_REQUIREMENTS, [id=#647]
-         +- *(2) HashAggregate(keys=[col#231], functions=[partial_count(1)])
-            +- *(2) Filter (isnotnull(col#231) AND NOT (col#231 = ))
-               +- Generate explode(split(interpro_annot_description#58, \s+|,|-|\/, -1)), false, [col#231]
-                  +- *(1) Project [_c12#28 AS interpro_annot_description#58]
-                     +- *(1) Filter ((((isnotnull(_c11#27) AND NOT (_c11#27 = -)) AND isnotnull(_c12#28)) AND (size(split(_c12#28, \s+|,|-|\/, -1), true) > 0)) AND isnotnull(split(_c12#28, \s+|,|-|\/, -1)))
-                        +- FileScan csv [_c11#27,_c12#28] Batched: false, DataFilters: [isnotnull(_c11#27), NOT (_c11#27 = -), isnotnull(_c12#28), (size(split(_c12#28, \s+|,|-|\/, -1),..., Format: CSV, Location: InMemoryFileIndex[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), Not(EqualTo(_c11,-)), IsNotNull(_c12)], ReadSchema: struct<_c11:string,_c12:string>
+8,"['xylonate', 'AtHST', 'EhuD', 'P3', 'AroM', 'SufR', 'VapC20', 'DUF3531', 'CHP03960', 'M15A']","== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [count#353L ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(count#353L ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [id=#805]
+      +- HashAggregate(keys=[col#349], functions=[count(1)])
+         +- Exchange hashpartitioning(col#349, 200), ENSURE_REQUIREMENTS, [id=#802]
+            +- HashAggregate(keys=[col#349], functions=[partial_count(1)])
+               +- Filter NOT (col#349 = )
+                  +- Generate explode(split(interpro_annot_description#59, \s+|,|-|\/, -1)), false, [col#349]
+                     +- Project [_c12#29 AS interpro_annot_description#59]
+                        +- Filter (isnotnull(_c11#28) AND NOT (_c11#28 = -))
+                           +- FileScan csv [_c11#28,_c12#29] Batched: false, DataFilters: [isnotnull(_c11#28), NOT (_c11#28 = -)], Format: CSV, Location: InMemoryFileIndex(1 paths)[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), Not(EqualTo(_c11,-))], ReadSchema: struct<_c11:string,_c12:string>
 
 "
 9,"['protein', 'like', 'superfamily', 'domain', 'binding', 'type', 'subunit', 'synthase', 'transporter', 'hydrolase']","== Physical Plan ==
-*(4) Sort [count#246L DESC NULLS LAST], true, 0
-+- Exchange rangepartitioning(count#246L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [id=#764]
-   +- *(3) HashAggregate(keys=[col#242], functions=[count(1)])
-      +- Exchange hashpartitioning(col#242, 200), ENSURE_REQUIREMENTS, [id=#760]
-         +- *(2) HashAggregate(keys=[col#242], functions=[partial_count(1)])
-            +- *(2) Filter (isnotnull(col#242) AND NOT (col#242 = ))
-               +- Generate explode(split(interpro_annot_description#58, \s+|,|-|\/, -1)), false, [col#242]
-                  +- *(1) Project [_c12#28 AS interpro_annot_description#58]
-                     +- *(1) Filter ((((((((isnotnull(_c11#27) AND isnotnull(_c7#23)) AND isnotnull(_c6#22)) AND isnotnull(_c2#18)) AND NOT (_c11#27 = -)) AND (cast((_c7#23 - _c6#22) as double) > ((cast(_c2#18 as double) / 100.0) * 90.0))) AND isnotnull(_c12#28)) AND (size(split(_c12#28, \s+|,|-|\/, -1), true) > 0)) AND isnotnull(split(_c12#28, \s+|,|-|\/, -1)))
-                        +- FileScan csv [_c2#18,_c6#22,_c7#23,_c11#27,_c12#28] Batched: false, DataFilters: [isnotnull(_c11#27), isnotnull(_c7#23), isnotnull(_c6#22), isnotnull(_c2#18), NOT (_c11#27 = -), ..., Format: CSV, Location: InMemoryFileIndex[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), IsNotNull(_c7), IsNotNull(_c6), IsNotNull(_c2), Not(EqualTo(_c11,-)), IsNotNull..., ReadSchema: struct<_c2:int,_c6:int,_c7:int,_c11:string,_c12:string>
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [count#364L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(count#364L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [id=#914]
+      +- HashAggregate(keys=[col#360], functions=[count(1)])
+         +- Exchange hashpartitioning(col#360, 200), ENSURE_REQUIREMENTS, [id=#911]
+            +- HashAggregate(keys=[col#360], functions=[partial_count(1)])
+               +- Filter NOT (col#360 = )
+                  +- Generate explode(split(interpro_annot_description#59, \s+|,|-|\/, -1)), false, [col#360]
+                     +- Project [_c12#29 AS interpro_annot_description#59]
+                        +- Filter (((((isnotnull(_c11#28) AND isnotnull(_c7#24)) AND isnotnull(_c6#23)) AND isnotnull(_c2#19)) AND NOT (_c11#28 = -)) AND (cast((_c7#24 - _c6#23) as double) > ((cast(_c2#19 as double) / 100.0) * 90.0)))
+                           +- FileScan csv [_c2#19,_c6#23,_c7#24,_c11#28,_c12#29] Batched: false, DataFilters: [isnotnull(_c11#28), isnotnull(_c7#24), isnotnull(_c6#23), isnotnull(_c2#19), NOT (_c11#28 = -), ..., Format: CSV, Location: InMemoryFileIndex(1 paths)[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), IsNotNull(_c7), IsNotNull(_c6), IsNotNull(_c2), Not(EqualTo(_c11,-))], ReadSchema: struct<_c2:int,_c6:int,_c7:int,_c11:string,_c12:string>
 
 "
-10,0.565343205811281,"== Physical Plan ==
-*(2) HashAggregate(keys=[protein_accession#46], functions=[avg(cast(sequence_length#48 as bigint)), count(interpro_annot_accession#57)])
-+- Exchange hashpartitioning(protein_accession#46, 200), ENSURE_REQUIREMENTS, [id=#854]
-   +- *(1) HashAggregate(keys=[protein_accession#46], functions=[partial_avg(cast(sequence_length#48 as bigint)), partial_count(interpro_annot_accession#57)])
-      +- *(1) Project [_c0#16 AS protein_accession#46, _c2#18 AS sequence_length#48, _c11#27 AS interpro_annot_accession#57]
-         +- *(1) Filter (isnotnull(_c11#27) AND NOT (_c11#27 = -))
-            +- FileScan csv [_c0#16,_c2#18,_c11#27] Batched: false, DataFilters: [isnotnull(_c11#27), NOT (_c11#27 = -)], Format: CSV, Location: InMemoryFileIndex[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), Not(EqualTo(_c11,-))], ReadSchema: struct<_c0:string,_c2:int,_c11:string>
+10,0.5653432058112801,"== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[protein_accession#47], functions=[avg(sequence_length#49), count(interpro_annot_accession#58)])
+   +- Exchange hashpartitioning(protein_accession#47, 200), ENSURE_REQUIREMENTS, [id=#1008]
+      +- HashAggregate(keys=[protein_accession#47], functions=[partial_avg(sequence_length#49), partial_count(interpro_annot_accession#58)])
+         +- Project [_c0#17 AS protein_accession#47, _c2#19 AS sequence_length#49, _c11#28 AS interpro_annot_accession#58]
+            +- Filter (isnotnull(_c11#28) AND NOT (_c11#28 = -))
+               +- FileScan csv [_c0#17,_c2#19,_c11#28] Batched: false, DataFilters: [isnotnull(_c11#28), NOT (_c11#28 = -)], Format: CSV, Location: InMemoryFileIndex(1 paths)[file:/data/dataprocessing/interproscan/all_bacilli.tsv], PartitionFilters: [], PushedFilters: [IsNotNull(_c11), Not(EqualTo(_c11,-))], ReadSchema: struct<_c0:string,_c2:int,_c11:string>
 
 "
