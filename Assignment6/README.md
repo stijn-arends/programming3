@@ -170,7 +170,10 @@ Finally, the [plot_results.ipynb](plot_results.ipynb) notebook was used to visua
 ## Results
 
 This graph shows how often authors cite other papers that include authors with who they have worked with in the past. For all the results please see the [figures/](figures/) directory or the [report](report.pdf).
-![graph_author](figures/common_authors_graph_small.png)
+
+<div align='center'>
+  <img src='figures/common_authors_graph_small.png'>
+</div>
 
 * * *
 ## Installation
