@@ -11,6 +11,7 @@
 
 * Studies: Data Science for Life Sciences (DSLS)
 * Teacher: Martijn Herber (HEMI)
+* Course [website](https://bioinf.nl/~martijn/master/programming3/)
 
 This course introduces students first and foremost to distributed programming (parallel programming). It introduces a number of libraries and frameworks to do so, and the underlying theory to understand them. The focus is on applying these frameworks to (big) data rather than creating new frameworks. Some of the tools covered are (not necessarily in this order);
 
