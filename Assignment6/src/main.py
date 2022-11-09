@@ -5,10 +5,10 @@ The main module.
 __author__ = "Stijn Arends"
 __version__ = "v.01"
 
+# IMPORTS
 import json
 import multiprocessing as mp
 import time
-# IMPORTS
 from pathlib import Path
 
 from arg_parser import ArgumentParser, CLIArgValidator

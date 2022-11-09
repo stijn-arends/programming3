@@ -4,10 +4,8 @@
 Module to parse medline data.
 """
 
-import ast
-
 # IMPORTS
-# import glob
+import ast
 import re
 
 
@@ -23,17 +21,6 @@ class MedlineParser:
     :get_article_date
     :get_keywords
     :get_pmc
-
-    To-do:
-        - pass the article to the init.
-        - Try except checks for empty returns
-        - Add checks if the article contains the correct keys inside the init
-        - try to use asynchio to read in the file
-            Reading files with aynschio:
-            https://www.twilio.com/blog/working-with-files-asynchronously-in-python-using-aiofiles-and-asyncio
-            Asynchio walkthorugh: https://realpython.com/async-io-python/
-        - turn the get function into asyncio functions
-        - Move this class to a seperate module
     """
 
     def __init__(self, article: dict) -> None:
@@ -86,7 +73,6 @@ class MedlineParser:
                 pmid = self._search_pmid_article_list(
                     self.article["PubmedData"]["ArticleIdList"]
                 )
-                # pmid = ast.literal_eval(pmid)
         except (IndexError, KeyError):
             pmid = ""
         return pmid
